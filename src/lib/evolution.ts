@@ -87,3 +87,4 @@ export async function leaveGroup(instance: string, groupJid: string) {
     console.error('Error leaving group via Evolution API:', error);
   }
 }
+

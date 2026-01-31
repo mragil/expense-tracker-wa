@@ -51,9 +51,24 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
 
   if ('error' in intent) {
     if (intent.error === 'unsupported_topic') {
-      await sendTextMessage(remoteJid, "I'm sorry, I can only help you log expenses/income or show reports. Try something like 'Spent 50k on coffee' or 'What is my expense for today?'.");
+      const helpMessage = 
+        `*🤖 ExpenseBot Help Menu*\n\n` +
+        `Saya tidak yakin apa yang Anda maksud. Berikut adalah beberapa hal yang bisa saya bantu:\n\n` +
+        `*1️⃣ Pencatatan (Pemasukan/Pengeluaran)*\n` +
+        `Cukup ketik secara alami, contoh:\n` +
+        `• _"Beli kopi 25rb"_\n` +
+        `• _"Gajian 5 juta"_\n` +
+        `• _"Tadi makan siang soto 30.000"_\n\n` +
+        `*2️⃣ Laporan Keuangan*\n` +
+        `Tanyakan ringkasan saldo Anda, contoh:\n` +
+        `• _"Pengeluaran hari ini"_\n` +
+        `• _"Laporan minggu ini"_\n` +
+        `• _"Berapa sisa budget bulan ini?"_\n\n` +
+        `Silakan pilih salah satu opsi di atas atau ketik pertanyaan Anda! 📈💸`;
+
+      await sendTextMessage(remoteJid, helpMessage);
     } else {
-      await sendTextMessage(remoteJid, "Oops! I had trouble understanding that. Could you try rephrasing it?");
+      await sendTextMessage(remoteJid, "Oops! Saya kesulitan memahami itu. Bisa coba ulangi kalimatnya?");
     }
     return { status: 'unsupported_topic' };
   }
@@ -68,13 +83,10 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
 }
 
 export async function handleGroupUpdate(payload: any) {
-  console.log('Received group update:', JSON.stringify(payload, null, 2));
-  
   const { action, author, remoteJid } = payload.data;
   const instance = payload.instance;
 
   if (action === 'add') {
-    // Security: Check if the inviter is a registered and active user
     const inviter = await db.query.users.findFirst({
       where: and(eq(users.whatsappNumber, author), eq(users.isActive, true)),
     });
