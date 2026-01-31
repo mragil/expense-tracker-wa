@@ -28,7 +28,6 @@ export interface EvolutionWebhookPayload {
 }
 
 export async function sendTextMessage(remoteJid: string, text: string, instance: string = INSTANCE) {
-  console.log('Sending message via Evolution API:', text, remoteJid, INSTANCE);
   try {
     const response = await fetch(`${API_URL}/message/sendText/${instance}`, {
       method: 'POST',

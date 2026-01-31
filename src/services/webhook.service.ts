@@ -28,7 +28,7 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
   }
 
   const messageText = extractMessageText(payload);
-  console.log('Received message:', messageText);
+  console.log('Received message:', { remoteJid, senderJid,messageText });
 
   if (!messageText) return { status: 'no_text' };
 
