@@ -6,7 +6,7 @@ config();
 
 export async function extractInformation(prompt: string, userMessage: string) {
   const { text } = await generateText({
-    model: google('gemini-1.5-flash'),
+    model: google('gemini-2.5-flash'),
     system: prompt,
     prompt: userMessage,
   });
@@ -43,37 +43,54 @@ If no amount is found, return {"error": "no_amount"}.`;
 }
 
 export interface TransactionData {
+  type: 'transaction';
   amount: number;
-  type: 'income' | 'expense';
+  transactionType: 'income' | 'expense';
   category: string;
   description: string;
 }
 
-export async function extractTransaction(userMessage: string): Promise<TransactionData | { error: string }> {
-  const systemPrompt = `You are an Expense Tracker extraction tool.
-Your ONLY job is to extract transaction details from the user's message.
-Return ONLY a valid JSON object with the following schema:
+export interface ReportData {
+  type: 'report';
+  period: 'today' | 'week' | 'month' | 'year';
+}
+
+export type UserIntent = TransactionData | ReportData | { error: string };
+
+export async function extractIntent(userMessage: string): Promise<UserIntent> {
+  const systemPrompt = `You are an Expense Tracker assistant.
+Your job is to understand if the user is logging a transaction OR asking for a report.
+
+If logging a transaction, return JSON:
 {
+  "type": "transaction",
   "amount": number,
-  "type": "income" | "expense",
+  "transactionType": "income" | "expense",
   "category": string,
   "description": string
 }
 
+If asking for a report/summary, return JSON:
+{
+  "type": "report",
+  "period": "today" | "week" | "month" | "year"
+}
+
 Rules:
-1. "type" must be exactly "income" or "expense".
+1. "transactionType" must be exactly "income" or "expense".
 2. "amount" must be a positive number.
 3. "category" should be a short, one-word category (e.g., food, transport, salary, bills).
 4. "description" should be what the user spent it on.
-5. If the message is NOT related to spending or income, respond with {"error": "unsupported_topic"}.
-6. Do NOT include any markdown or extra text in your response.`;
+5. "period" defaults to "today" if they just ask for "rekap" or "summary" without specifying.
+6. If the message is NOT related to spending, income, or reports, respond with {"error": "unsupported_topic"}.
+7. Do NOT include any markdown or extra text in your response.`;
 
   const result = await extractInformation(systemPrompt, userMessage);
   try {
     const parsed = JSON.parse(result);
     return parsed;
   } catch (e) {
-    console.error('Failed to parse transaction JSON:', result);
+    console.error('Failed to parse intent JSON:', result);
     return { error: 'parse_error' };
   }
 }

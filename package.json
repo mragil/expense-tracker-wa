@@ -13,7 +13,8 @@
     "db:push": "drizzle-kit push",
     "lint": "biome lint .",
     "format": "biome format --write .",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "db:studio": "drizzle-kit studio"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
   "dependencies": {
     "@ai-sdk/google": "^1.1.9",
     "@hono/node-server": "^1.13.8",
+    "@libsql/client": "^0.17.0",
     "ai": "^4.1.17",
     "better-sqlite3": "^11.8.1",
     "dotenv": "^16.4.7",

@@ -25,6 +25,7 @@ export interface EvolutionWebhookPayload {
 }
 
 export async function sendTextMessage(remoteJid: string, text: string, instance: string = INSTANCE) {
+  console.log('Sending message via Evolution API:', text, remoteJid, INSTANCE);
   try {
     const response = await fetch(`${API_URL}/message/sendText/${instance}`, {
       method: 'POST',
@@ -39,15 +40,13 @@ export async function sendTextMessage(remoteJid: string, text: string, instance:
           presence: 'composing',
           linkPreview: false,
         },
-        textMessage: {
-          text: text,
-        },
+        text,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Evolution API Error:', errorData);
+      console.error('Evolution API Error:', errorData.response.message);
     }
 
     return await response.json();

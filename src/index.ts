@@ -22,7 +22,6 @@ app.get('/health', (c) => {
 app.post('/webhook/messages-upsert', async (c) => {
   try {
     const rawBody = await c.req.text();
-    console.log('Received webhook:', rawBody);
     if (!rawBody) {
       console.warn('Received empty webhook body');
       return c.json({ status: 'ignored', reason: 'empty_body' });
