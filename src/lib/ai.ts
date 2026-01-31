@@ -55,11 +55,21 @@ export interface ReportData {
   period: 'today' | 'week' | 'month' | 'year';
 }
 
-export type UserIntent = TransactionData | ReportData | { error: string };
+export interface BudgetInquiryData {
+  type: 'budget_inquiry';
+}
+
+export interface BudgetUpdateData {
+  type: 'budget_update';
+  amount: number;
+  period: 'day' | 'month' | 'year';
+}
+
+export type UserIntent = TransactionData | ReportData | BudgetInquiryData | BudgetUpdateData | { error: string };
 
 export async function extractIntent(userMessage: string): Promise<UserIntent> {
   const systemPrompt = `You are an Expense Tracker assistant.
-Your job is to understand if the user is logging a transaction OR asking for a report.
+Your job is to understand if the user is logging a transaction, asking for a report, OR asking about their budget status.
 
 If logging a transaction, return JSON:
 {
@@ -76,15 +86,27 @@ If asking for a report/summary, return JSON:
   "period": "today" | "week" | "month" | "year"
 }
 
+If asking about their budget status (e.g., "sisa budget", "budget saya", "berapa budget saya"), return JSON:
+{
+  "type": "budget_inquiry"
+}
+
+If setting or updating their budget (e.g., "budget 3000000", "set budget 5jt", "budget bulanan 2jt"), return JSON:
+{
+  "type": "budget_update",
+  "amount": number,
+  "period": "day" | "month" | "year"
+}
+
 Rules:
 1. "transactionType" must be exactly "income" or "expense".
 2. "amount" must be a positive number.
 3. "category" should be a short, one-word category (e.g., food, transport, salary, bills).
 4. "description" should be what the user spent it on.
-5. "period" defaults to "today" if they just ask for "rekap", "summary", or "berapa pengeluaran" without specifying.
-6. Support English and Indonesian (e.g., "rekap", "laporan", "pengeluaran", "pemasukan").
+5. "period" must be exactly "month" for budget updates, as all budgets are currently monthly. For reports, it defaults to "today" if not specified.
+6. Support English and Indonesian (e.g., "rekap", "laporan", "sisa budget", "budget saya", "set budget").
 7. If the user asks "berapa pengeluaran hari ini", it is a report with period "today".
-8. If the message is NOT related to spending, income, or reports, respond with {"error": "unsupported_topic"}.
+8. If the message is NOT related to spending, income, budget management, or reports, respond with {"error": "unsupported_topic"}.
 9. Do NOT include any markdown or extra text in your response.`;
 
   const result = await extractInformation(systemPrompt, userMessage);

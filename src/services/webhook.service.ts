@@ -7,6 +7,7 @@ import * as onboarding from './onboarding.service';
 import * as transaction from './transaction.service';
 import { extractIntent } from '../lib/ai';
 import * as reportService from './report.service';
+import * as budgetService from './budget.service';
 import { leaveGroup } from '../lib/evolution';
 
 export async function handleWebhook(payload: EvolutionWebhookPayload) {
@@ -78,8 +79,22 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
     return { status: 'processed_report' };
   }
 
-  await transaction.handleTransaction(remoteJid, intent, senderJid);
-  return { status: 'processed_transaction' };
+  if (intent.type === 'budget_inquiry') {
+    await budgetService.checkBudget(remoteJid);
+    return { status: 'processed_budget_inquiry' };
+  }
+
+  if (intent.type === 'budget_update') {
+    await budgetService.updateBudget(remoteJid, intent.amount);
+    return { status: 'processed_budget_update' };
+  }
+
+  if (intent.type === 'transaction') {
+    await transaction.handleTransaction(remoteJid, intent, senderJid);
+    return { status: 'processed_transaction' };
+  }
+
+  return { status: 'ignored' };
 }
 
 export async function handleGroupUpdate(payload: any) {
