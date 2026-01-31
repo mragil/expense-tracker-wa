@@ -46,12 +46,13 @@ export async function sendTextMessage(remoteJid: string, text: string, instance:
       }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Evolution API Error:', errorData.response.message);
+      console.error('Evolution API Error:', data.response?.message || data);
     }
 
-    return await response.json();
+    return data;
   } catch (error) {
     console.error('Error sending message via Evolution API:', error);
   }
@@ -73,12 +74,13 @@ export async function leaveGroup(instance: string, groupJid: string) {
       },
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Evolution API Leave Group Error:', errorData);
+      console.error('Evolution API Leave Group Error:', data);
     }
 
-    return await response.json();
+    return data;
   } catch (error) {
     console.error('Error leaving group via Evolution API:', error);
   }
