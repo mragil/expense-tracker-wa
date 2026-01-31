@@ -3,17 +3,11 @@ import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 export const users = sqliteTable('users', {
   whatsappNumber: text('whatsapp_number').primaryKey(),
   displayName: text('display_name'),
-  onboardingStep: text('onboarding_step').default('voucher'),
+  onboardingStep: text('onboarding_step').default('name'),
   isActive: integer('is_active', { mode: 'boolean' }).default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
-export const vouchers = sqliteTable('vouchers', {
-  code: text('code').primaryKey(),
-  isUsed: integer('is_used', { mode: 'boolean' }).default(false),
-  usedBy: text('used_by').references(() => users.whatsappNumber),
-  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
-});
 
 export const transactions = sqliteTable('transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
