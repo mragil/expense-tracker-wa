@@ -18,9 +18,9 @@ export async function handleTransaction(remoteJid: string, data: TransactionData
   });
 
   const amountStr = amount.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US');
-  const typeLabel = lang === 'en' ? (type.charAt(0).toUpperCase() + type.slice(1)) : (type === 'income' ? 'Pemasukan' : 'Pengeluaran');
+  const typeLabel = t.label(type);
   
-  const confirmationText = t.transaction_success(type, amountStr, category) + (description ? `\n\n_Notes: ${description}_` : '');
+  const confirmationText = t.transaction_success(typeLabel, amountStr, category) + (description ? `\n\n_Notes: ${description}_` : '');
 
   await sendTextMessage(remoteJid, confirmationText);
 }

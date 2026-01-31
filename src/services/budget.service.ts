@@ -41,7 +41,7 @@ export async function checkBudget(remoteJid: string, lang: Language = 'id') {
     `*${t.budget_status_spent}* ${totalExpense.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')} (${percentUsed.toFixed(1)}%)\n` +
     `--------------------------\n` +
     `*${t.budget_status_remaining}* ${remaining.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')} ${emoji}\n\n` +
-    (lang === 'id' ? "Tetap semangat mengatur keuangan! 💪" : "Keep up the good work managing your finances! 💪");
+    t.budget_status_encouragement;
 
   await sendTextMessage(remoteJid, budgetText);
 }
@@ -54,5 +54,5 @@ export async function updateBudget(remoteJid: string, amount: number, lang: Lang
     period: 'month',
   });
 
-  await sendTextMessage(remoteJid, t.budget_update_success(amount.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')) + (lang === 'id' ? "\n\nKetik \"Cek budget\" untuk melihat status penggunaan Anda." : "\n\nType \"Check budget\" to see your usage status."));
+  await sendTextMessage(remoteJid, t.budget_update_success(amount.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')) + t.budget_update_footer);
 }

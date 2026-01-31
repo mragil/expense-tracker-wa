@@ -14,7 +14,9 @@
   "budget_status_remaining": "Sisa Budget: ",
   "budget_status_limit": "Limit: ",
   "budget_status_no_limit": "Anda belum mengatur limit budget bulanan.",
+  "budget_status_encouragement": "Tetap semangat mengatur keuangan! 💪",
   "budget_update_success": "✅ Budget bulanan Anda berhasil diperbarui menjadi *{{amount}}*.",
+  "budget_update_footer": "\n\nKetik \"Cek budget\" untuk melihat status penggunaan Anda.",
   "group_welcome": "*Halo Semuanya!* 👋\n\nSaya adalah *ExpenseBot*, asisten pencatat pengeluaran Anda.\n\nKetik pesan seperti:\n- \"Beli kopi 25rb\"\n- \"Gajian 5jt\"\n- \"Berapa pengeluaran hari ini?\"\n\nSaya akan mencatat pengeluaran untuk *Grup ini*.",
   "report_title": "*📊 Laporan Keuangan ({{period}})*",
   "report_income": "💰 *Total Pemasukan:* ",
@@ -22,7 +24,15 @@
   "report_balance": "⚖️ *Selisih:* ",
   "report_details": "*Detail Transaksi:*",
   "report_no_data": "Tidak ada transaksi untuk periode ini.",
+  "report_oldest_hint": "\n_(Menampilkan 30 transaksi terlama)_",
   "transaction_success": "✅ *Berhasil mencatat!*\n\n📌 Jenis: {{type}}\n💰 Jumlah: {{amount}}\n🏷️ Kategori: {{category}}",
   "language_change_success": "✅ Bahasa berhasil diubah ke *Bahasa Indonesia*.",
-  "error_generic": "Oops! Saya kesulitan memahami itu. Bisa coba ulangi kalimatnya?"
+  "error_generic": "Oops! Saya kesulitan memahami itu. Bisa coba ulangi kalimatnya?",
+  "error_budget_parse": "Saya tidak menangkap jumlahnya. Bisa tolong sebutkan dengan jelas (contoh: '5jt') atau ketik 'skip' saja?",
+  "label_income": "Pemasukan",
+  "label_expense": "Pengeluaran",
+  "label_today": "Hari Ini",
+  "label_week": "Minggu Ini",
+  "label_month": "Bulan Ini",
+  "label_year": "Tahun Ini"
 }

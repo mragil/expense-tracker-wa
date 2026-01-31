@@ -6,12 +6,22 @@ config();
 
 export async function extractInformation(prompt: string, userMessage: string) {
   const { text } = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-1.5-flash'),
     system: prompt,
     prompt: userMessage,
   });
 
   return text.trim();
+}
+
+/**
+ * Clean AI response to extract pure JSON
+ */
+function cleanJson(result: string): string {
+  return result
+    .replace(/```json/g, '')
+    .replace(/```/g, '')
+    .trim();
 }
 
 export async function extractName(userMessage: string): Promise<string> {
@@ -33,7 +43,7 @@ If no amount is found, return {"error": "no_amount"}.`;
 
   const result = await extractInformation(systemPrompt, userMessage);
   try {
-    const parsed = JSON.parse(result);
+    const parsed = JSON.parse(cleanJson(result));
     if (parsed.error) return null;
     return parsed;
   } catch (e) {
@@ -125,7 +135,8 @@ Rules:
 
   const result = await extractInformation(systemPrompt, userMessage);
   try {
-    const parsed = JSON.parse(result);
+    const cleanedResult = cleanJson(result);
+    const parsed = JSON.parse(cleanedResult);
     // Fallback for missing period in report intents
     if (parsed.type === 'report' && !parsed.period) {
       parsed.period = 'today';

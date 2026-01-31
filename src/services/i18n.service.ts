@@ -26,6 +26,15 @@ export function getT(lang: Language = 'id') {
       reports: dict.help_reports,
       footer: dict.help_footer
     },
-    group_welcome: dict.group_welcome
+    group_welcome: dict.group_welcome,
+    
+    // Budget & Errors
+    budget_status_encouragement: dict.budget_status_encouragement,
+    budget_update_footer: dict.budget_update_footer,
+    error_budget_parse: dict.error_budget_parse,
+    report_oldest_hint: dict.report_oldest_hint,
+
+    // Label conversion helper
+    label: (key: string) => dict[`label_${key}`] || key
   };
 }

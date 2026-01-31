@@ -48,12 +48,7 @@ async function handleBudgetStep(remoteJid: string, messageText: string, user: an
       period: 'month',
     });
     await db.update(users).set({ onboardingStep: 'completed', isActive: true }).where(eq(users.whatsappNumber, remoteJid));
-    await sendTextMessage(remoteJid, t.onboarding_completed(user.displayName));
-  } else {
-    const errorMsg = user.language === 'en' 
-      ? "I couldn't quite catch the amount. Could you please specify it clearly (e.g., '500k') or type 'skip' to do it later?"
-      : "Saya tidak menangkap jumlahnya. Bisa tolong sebutkan dengan jelas (contoh: '5jt') atau ketik 'skip' saja?";
-    await sendTextMessage(remoteJid, errorMsg);
+    await sendTextMessage(remoteJid, t.error_budget_parse);
   }
 }
 

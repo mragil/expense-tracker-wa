@@ -72,15 +72,11 @@ export async function generateSummary(remoteJid: string, period: 'today' | 'week
         .join('\n');
     
     if (userTransactions.length > 30) {
-      detailsText += lang === 'id' ? '\n_(Menampilkan 30 transaksi terlama)_' : '\n_(Showing oldest 30 transactions)_';
+      detailsText += t.report_oldest_hint;
     }
   }
 
-  const periodLabel = lang === 'en' ? period.charAt(0).toUpperCase() + period.slice(1) : (
-    period === 'today' ? 'Hari Ini' :
-    period === 'week' ? 'Minggu Ini' :
-    period === 'month' ? 'Bulan Ini' : 'Tahun Ini'
-  );
+  const periodLabel = t.label(period);
 
   const reportText = `${t.report_title(periodLabel)} ${emoji}\n\n` +
     `${t.report_income}${summary.totalIncome.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}\n` +

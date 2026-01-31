@@ -86,3 +86,8 @@ export async function leaveGroup(instance: string, groupJid: string) {
   }
 }
 
+export function isWhitelisted(jid: string): boolean {
+  const whitelist = process.env.EVOLUTION_WHITELISTED_NUMBERS?.split(',') || [];
+  return whitelist.includes(jid);
+}
+

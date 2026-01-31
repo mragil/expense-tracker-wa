@@ -1,14 +1,13 @@
 import { db } from '../db/index';
 import { users, groups } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
-import { extractMessageText, sendTextMessage } from '../lib/evolution';
+import { extractMessageText, sendTextMessage, isWhitelisted, leaveGroup } from '../lib/evolution';
 import type { EvolutionWebhookPayload } from '../lib/evolution';
 import * as onboarding from './onboarding.service';
 import * as transaction from './transaction.service';
 import { extractIntent } from '../lib/ai';
 import * as reportService from './report.service';
 import * as budgetService from './budget.service';
-import { leaveGroup } from '../lib/evolution';
 import { getT, type Language } from './i18n.service';
 
 export async function handleWebhook(payload: EvolutionWebhookPayload) {
@@ -21,8 +20,7 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
 
   // Whitelist check: required for personal chats, skipped for groups
   if (!isGroup) {
-    const isWhitelisted = process.env.EVOLUTION_WHITELISTED_NUMBERS?.split(',').includes(senderJid);
-    if (!isWhitelisted) {
+    if (!isWhitelisted(senderJid)) {
       return { status: 'not_whitelisted' };
     }
   }
@@ -123,14 +121,13 @@ export async function handleGroupUpsert(payload: any) {
   const { id: remoteJid, author, authorPn, subject } = groupData;
   const authorizingUser = author || authorPn;
 
-  const whitelistedArray = process.env.EVOLUTION_WHITELISTED_NUMBERS?.split(',') || [];
-  const isWhitelisted = whitelistedArray.includes(authorPn) || whitelistedArray.includes(author);
+  const whitelisted = isWhitelisted(author) || isWhitelisted(authorPn);
   
   const user = await db.query.users.findFirst({
     where: and(eq(users.whatsappNumber, authorizingUser), eq(users.isActive, true)),
   });
 
-  if (!isWhitelisted && !user) {
+  if (!whitelisted && !user) {
     console.warn(`Unauthorized group registration attempt for ${remoteJid} ("${subject}") by ${authorizingUser}. Leaving group.`);
     await leaveGroup(instance, remoteJid);
     return { status: 'left_unauthorized_group' };
