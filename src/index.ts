@@ -47,6 +47,17 @@ app.post('/webhook/group-participants-update', async (c) => {
   }
 });
 
+app.post('/webhook/groups-upsert', async (c) => {
+  try {
+    const body = await c.req.json();
+    const result = await webhookService.handleGroupUpsert(body);
+    return c.json(result);
+  } catch (error) {
+    console.error('Group upsert error:', error);
+    return c.json({ status: 'error', message: 'Internal server error' }, 500);
+  }
+});
+
 const port = Number(process.env.PORT) || 3000;
 console.log(`Main service is running on port ${port}`);
 

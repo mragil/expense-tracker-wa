@@ -32,37 +32,6 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
 
   if (!messageText) return { status: 'no_text' };
 
-  let groupData: any = null;
-  if (isGroup) {
-    // Lazy Group Registration: Register group on first interaction if missed join event
-    groupData = await db.query.groups.findFirst({
-      where: eq(groups.jid, remoteJid),
-    });
-
-    if (!groupData) {
-      groupData = {
-        jid: remoteJid,
-        addedBy: senderJid,
-        isActive: true,
-        language: 'id',
-        updatedAt: new Date(),
-      };
-      await db.insert(groups).values(groupData);
-      console.log(`Lazy registered group: ${remoteJid} via interaction from ${senderJid}`);
-      
-      await sendGroupWelcomeMessage(remoteJid, 'id');
-      return { status: 'group_welcome_sent' };
-    } else if (!groupData.isActive) {
-      await db.update(groups)
-        .set({ isActive: true, addedBy: senderJid, updatedAt: new Date() })
-        .where(eq(groups.jid, remoteJid));
-      console.log(`Reactivated group: ${remoteJid} via interaction from ${senderJid}`);
-      
-      await sendGroupWelcomeMessage(remoteJid, groupData.language as Language || 'id');
-      return { status: 'group_reactivated' };
-    }
-  }
-
   const user = await db.query.users.findFirst({
     where: eq(users.whatsappNumber, senderJid),
   });
@@ -80,8 +49,13 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
   }
 
   let lang: Language = (user?.language as Language) || 'id';
-  if (isGroup && groupData?.language) {
-    lang = groupData.language as Language;
+  if (isGroup) {
+    const groupData = await db.query.groups.findFirst({
+      where: eq(groups.jid, remoteJid),
+    });
+    if (groupData?.language) {
+      lang = groupData.language as Language;
+    }
   }
   const t = getT(lang);
   const intent = await extractIntent(messageText);
@@ -139,6 +113,51 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
   }
 
   return { status: 'ignored' };
+}
+
+export async function handleGroupUpsert(payload: any) {
+  const instance = payload.instance;
+  const groupData = payload.data?.[0];
+  if (!groupData) return { status: 'no_data' };
+
+  const { id: remoteJid, author, authorPn, subject } = groupData;
+  const authorizingUser = author || authorPn;
+
+  const whitelistedArray = process.env.EVOLUTION_WHITELISTED_NUMBERS?.split(',') || [];
+  const isWhitelisted = whitelistedArray.includes(authorPn) || whitelistedArray.includes(author);
+  
+  const user = await db.query.users.findFirst({
+    where: and(eq(users.whatsappNumber, authorizingUser), eq(users.isActive, true)),
+  });
+
+  if (!isWhitelisted && !user) {
+    console.warn(`Unauthorized group registration attempt for ${remoteJid} ("${subject}") by ${authorizingUser}. Leaving group.`);
+    await leaveGroup(instance, remoteJid);
+    return { status: 'left_unauthorized_group' };
+  }
+
+  // Record or Reactivate Group
+  await db.insert(groups).values({
+    jid: remoteJid,
+    name: subject || 'Untitled Group',
+    addedBy: authorizingUser,
+    isActive: true,
+    language: 'id',
+    updatedAt: new Date(),
+  }).onConflictDoUpdate({
+    target: groups.jid,
+    set: { 
+      name: subject || 'Untitled Group',
+      addedBy: authorizingUser, 
+      isActive: true, 
+      updatedAt: new Date() 
+    }
+  });
+
+  console.log(`Registered group via upsert: ${remoteJid} authorized by ${authorizingUser}`);
+  await sendGroupWelcomeMessage(remoteJid, 'id');
+  
+  return { status: 'group_registered' };
 }
 
 export async function handleGroupUpdate(payload: any) {

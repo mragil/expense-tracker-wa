@@ -66,14 +66,11 @@ export function extractMessageText(payload: EvolutionWebhookPayload): string | u
 
 export async function leaveGroup(instance: string, groupJid: string) {
   try {
-    const response = await fetch(`${API_URL}/group/leave/${instance}`, {
+    const response = await fetch(`${API_URL}/group/leaveGroup/${instance}?groupJid=${groupJid}`, {
       method: 'DELETE',
       headers: {
         'apikey': API_KEY || '',
       },
-      body: JSON.stringify({
-        groupJid: groupJid,
-      }),
     });
 
     if (!response.ok) {
