@@ -3,7 +3,7 @@ import { transactions } from '../db/schema';
 import { sendTextMessage } from '../lib/evolution';
 import type { TransactionData } from '../lib/ai';
 
-export async function handleTransaction(remoteJid: string, data: TransactionData) {
+export async function handleTransaction(remoteJid: string, data: TransactionData, loggedBy?: string) {
   const { amount, transactionType: type, category, description } = data;
 
   await db.insert(transactions).values({
@@ -12,6 +12,7 @@ export async function handleTransaction(remoteJid: string, data: TransactionData
     transactionType: type,
     category,
     description,
+    loggedBy: loggedBy || remoteJid,
   });
 
   const emoji = type === 'expense' ? '💸' : '💰';

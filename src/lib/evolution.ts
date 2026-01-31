@@ -8,11 +8,13 @@ const INSTANCE = process.env.EVOLUTION_INSTANCE || 'main';
 
 export interface EvolutionWebhookPayload {
   event: string;
+  instance: string;
   data: {
     key: {
       remoteJid: string;
       fromMe: boolean;
       id: string;
+      participant?: string;
     };
     message?: {
       conversation?: string;
@@ -21,6 +23,7 @@ export interface EvolutionWebhookPayload {
       };
     };
     pushName?: string;
+    author?: string;
   };
 }
 
@@ -60,4 +63,27 @@ export function extractMessageText(payload: EvolutionWebhookPayload): string | u
     payload.data.message?.conversation ||
     payload.data.message?.extendedTextMessage?.text
   );
+}
+
+export async function leaveGroup(instance: string, groupJid: string) {
+  try {
+    const response = await fetch(`${API_URL}/group/leave/${instance}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': API_KEY || '',
+      },
+      body: JSON.stringify({
+        groupJid: groupJid,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Evolution API Leave Group Error:', errorData);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error leaving group via Evolution API:', error);
+  }
 }

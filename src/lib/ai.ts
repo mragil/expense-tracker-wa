@@ -81,13 +81,19 @@ Rules:
 2. "amount" must be a positive number.
 3. "category" should be a short, one-word category (e.g., food, transport, salary, bills).
 4. "description" should be what the user spent it on.
-5. "period" defaults to "today" if they just ask for "rekap" or "summary" without specifying.
-6. If the message is NOT related to spending, income, or reports, respond with {"error": "unsupported_topic"}.
-7. Do NOT include any markdown or extra text in your response.`;
+5. "period" defaults to "today" if they just ask for "rekap", "summary", or "berapa pengeluaran" without specifying.
+6. Support English and Indonesian (e.g., "rekap", "laporan", "pengeluaran", "pemasukan").
+7. If the user asks "berapa pengeluaran hari ini", it is a report with period "today".
+8. If the message is NOT related to spending, income, or reports, respond with {"error": "unsupported_topic"}.
+9. Do NOT include any markdown or extra text in your response.`;
 
   const result = await extractInformation(systemPrompt, userMessage);
   try {
     const parsed = JSON.parse(result);
+    // Fallback for missing period in report intents
+    if (parsed.type === 'report' && !parsed.period) {
+      parsed.period = 'today';
+    }
     return parsed;
   } catch (e) {
     console.error('Failed to parse intent JSON:', result);
