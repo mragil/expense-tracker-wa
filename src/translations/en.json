@@ -15,6 +15,7 @@
   "budget_status_limit": "Limit: ",
   "budget_status_no_limit": "You haven't set a monthly budget limit yet.",
   "budget_update_success": "✅ Your monthly budget has been updated to *{{amount}}*.",
+  "group_welcome": "*Hello Everyone!* 👋\n\nI am *ExpenseBot*, your expense tracking assistant.\n\nType messages like:\n- \"Coffee 25k\"\n- \"Salary 5m\"\n- \"What is today's expense?\"\n\nI will track expenses for *this Group*.",
   "report_title": "*📊 Financial Report ({{period}})*",
   "report_income": "💰 *Total Income:* ",
   "report_expense": "💸 *Total Expense:* ",

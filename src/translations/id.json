@@ -15,6 +15,7 @@
   "budget_status_limit": "Limit: ",
   "budget_status_no_limit": "Anda belum mengatur limit budget bulanan.",
   "budget_update_success": "✅ Budget bulanan Anda berhasil diperbarui menjadi *{{amount}}*.",
+  "group_welcome": "*Halo Semuanya!* 👋\n\nSaya adalah *ExpenseBot*, asisten pencatat pengeluaran Anda.\n\nKetik pesan seperti:\n- \"Beli kopi 25rb\"\n- \"Gajian 5jt\"\n- \"Berapa pengeluaran hari ini?\"\n\nSaya akan mencatat pengeluaran untuk *Grup ini*.",
   "report_title": "*📊 Laporan Keuangan ({{period}})*",
   "report_income": "💰 *Total Pemasukan:* ",
   "report_expense": "💸 *Total Pengeluaran:* ",

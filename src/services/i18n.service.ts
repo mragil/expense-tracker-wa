@@ -25,6 +25,7 @@ export function getT(lang: Language = 'id') {
       logging: dict.help_logging,
       reports: dict.help_reports,
       footer: dict.help_footer
-    }
+    },
+    group_welcome: dict.group_welcome
   };
 }

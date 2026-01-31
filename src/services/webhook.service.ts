@@ -212,23 +212,5 @@ export async function handleGroupUpdate(payload: any) {
 
 async function sendGroupWelcomeMessage(remoteJid: string, lang: Language = 'id') {
   const t = getT(lang);
-  const welcomeMessage = lang === 'id' ? (
-    `*Halo Semuanya!* 👋\n\n` +
-    `Saya adalah *ExpenseBot*, asisten pencatat pengeluaran Anda.\n\n` +
-    `Ketik pesan seperti:\n` +
-    `- "Beli kopi 25rb"\n` +
-    `- "Gajian 5jt"\n` +
-    `- "Berapa pengeluaran hari ini?"\n\n` +
-    `Saya akan mencatat pengeluaran untuk *Grup ini*.`
-  ) : (
-    `*Hello Everyone!* 👋\n\n` +
-    `I am *ExpenseBot*, your expense tracking assistant.\n\n` +
-    `Type messages like:\n` +
-    `- "Coffee 25k"\n` +
-    `- "Salary 5m"\n` +
-    `- "What is today's expense?"\n\n` +
-    `I will track expenses for *this Group*.`
-  );
-
-  await sendTextMessage(remoteJid, welcomeMessage);
+  await sendTextMessage(remoteJid, t.group_welcome);
 }
