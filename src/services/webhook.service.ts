@@ -1,5 +1,5 @@
 import { db } from '../db/index';
-import { users } from '../db/schema';
+import { users, groups } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { extractMessageText, sendTextMessage } from '../lib/evolution';
 import type { EvolutionWebhookPayload } from '../lib/evolution';
@@ -14,7 +14,6 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
   if (payload.event !== 'messages.upsert' || payload.data.key.fromMe) {
     return { status: 'ignored' };
   }
-
   const remoteJid = payload.data.key.remoteJid;
   const senderJid = payload.data.key.participant || payload.data.author || remoteJid;
   const isGroup = remoteJid.endsWith('@g.us');
@@ -31,6 +30,34 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
   console.log('Received message:', { remoteJid, senderJid,messageText });
 
   if (!messageText) return { status: 'no_text' };
+
+  if (isGroup) {
+    // Lazy Group Registration: Register group on first interaction if missed join event
+    const group = await db.query.groups.findFirst({
+      where: eq(groups.jid, remoteJid),
+    });
+
+    if (!group) {
+      await db.insert(groups).values({
+        jid: remoteJid,
+        addedBy: senderJid, // Fallback to first interactor
+        isActive: true,
+        updatedAt: new Date(),
+      });
+      console.log(`Lazy registered group: ${remoteJid} via interaction from ${senderJid}`);
+      
+      await sendGroupWelcomeMessage(remoteJid);
+      return { status: 'group_welcome_sent' };
+    } else if (!group.isActive) {
+      await db.update(groups)
+        .set({ isActive: true, addedBy: senderJid, updatedAt: new Date() })
+        .where(eq(groups.jid, remoteJid));
+      console.log(`Reactivated group: ${remoteJid} via interaction from ${senderJid}`);
+      
+      await sendGroupWelcomeMessage(remoteJid);
+      return { status: 'group_reactivated' };
+    }
+  }
 
   if (!isGroup) {
     const user = await db.query.users.findFirst({
@@ -98,8 +125,9 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
 }
 
 export async function handleGroupUpdate(payload: any) {
-  const { action, author, remoteJid } = payload.data;
   const instance = payload.instance;
+  const data = payload.data;
+  const { action, author, remoteJid } = data;
 
   if (action === 'add') {
     const inviter = await db.query.users.findFirst({
@@ -112,17 +140,48 @@ export async function handleGroupUpdate(payload: any) {
       return { status: 'left_unauthorized_group' };
     }
 
-    const welcomeMessage = `*Halo Semuanya!* 👋\n\n` +
-      `Saya adalah *ExpenseBot*, asisten pencatat pengeluaran Anda.\n\n` +
-      `Ketik pesan seperti:\n` +
-      `- "Beli kopi 25rb"\n` +
-      `- "Gajian 5jt"\n` +
-      `- "Berapa pengeluaran hari ini?"\n\n` +
-      `Saya akan mencatat pengeluaran untuk *Grup ini*.`;
+    // Record group membership
+    await db.insert(groups).values({
+      jid: remoteJid,
+      addedBy: author,
+      isActive: true,
+      updatedAt: new Date(),
+    }).onConflictDoUpdate({
+      target: groups.jid,
+      set: { 
+        addedBy: author, 
+        isActive: true, 
+        updatedAt: new Date() 
+      }
+    });
 
-    await sendTextMessage(remoteJid, welcomeMessage);
+    await sendGroupWelcomeMessage(remoteJid);
     return { status: 'group_welcome_sent' };
   }
 
+  if (action === 'remove' || action === 'leave') {
+    const botJid = payload.sender;
+    const isBotRemoved = data.participants.some((p: any) => p.phoneNumber === botJid);
+    if (isBotRemoved) {
+      await db.update(groups)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(groups.jid, data.id));
+      console.log(`Bot removed from group: ${data.id}. Marked as inactive.`);
+      return { status: 'group_inactive' };
+    }
+  }
+
   return { status: 'ignored' };
+}
+
+async function sendGroupWelcomeMessage(remoteJid: string) {
+  const welcomeMessage = `*Halo Semuanya!* 👋\n\n` +
+    `Saya adalah *ExpenseBot*, asisten pencatat pengeluaran Anda.\n\n` +
+    `Ketik pesan seperti:\n` +
+    `- "Beli kopi 25rb"\n` +
+    `- "Gajian 5jt"\n` +
+    `- "Berapa pengeluaran hari ini?"\n\n` +
+    `Saya akan mencatat pengeluaran untuk *Grup ini*.`;
+
+  await sendTextMessage(remoteJid, welcomeMessage);
 }

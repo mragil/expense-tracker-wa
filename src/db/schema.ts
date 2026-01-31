@@ -43,3 +43,12 @@ export const reportRequests = sqliteTable('report_requests', {
   filePath: text('file_path'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
+
+export const groups = sqliteTable('groups', {
+  jid: text('jid').primaryKey(),
+  name: text('name'),
+  addedBy: text('added_by').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});

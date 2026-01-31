@@ -42,7 +42,7 @@ app.post('/webhook/group-participants-update', async (c) => {
     const result = await webhookService.handleGroupUpdate(body);
     return c.json(result);
   } catch (error) {
-    console.error('Group update processing error:', error);
+    console.error('Group update error:', error);
     return c.json({ status: 'error', message: 'Internal server error' }, 500);
   }
 });
