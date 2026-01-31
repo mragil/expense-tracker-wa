@@ -34,29 +34,22 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
     where: eq(users.whatsappNumber, senderJid),
   });
 
+  const intent = await extractIntent(messageText);
+  const lang = intent.detectedLanguage;
+
   if (!isGroup) {
     if (!user) {
-      await onboarding.startOnboarding(remoteJid);
+      await onboarding.startOnboarding(remoteJid, lang);
       return { status: 'onboarding_started' };
     }
 
     if (user.onboardingStep !== 'completed') {
-      await onboarding.handleOnboarding(remoteJid, messageText, user);
+      await onboarding.handleOnboarding(remoteJid, messageText, user, lang);
       return { status: 'onboarding_continue' };
     }
   }
 
-  let lang: Language = (user?.language as Language) || 'id';
-  if (isGroup) {
-    const groupData = await db.query.groups.findFirst({
-      where: eq(groups.jid, remoteJid),
-    });
-    if (groupData?.language) {
-      lang = groupData.language as Language;
-    }
-  }
   const t = getT(lang);
-  const intent = await extractIntent(messageText);
 
   if ('error' in intent) {
     if (intent.error === 'unsupported_topic') {
@@ -72,22 +65,6 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
       await sendTextMessage(remoteJid, t.error_generic);
     }
     return { status: 'unsupported_topic' };
-  }
-
-  if (intent.type === 'language_change') {
-    if (isGroup) {
-      await db.update(groups)
-        .set({ language: intent.language, updatedAt: new Date() })
-        .where(eq(groups.jid, remoteJid));
-    } else {
-      await db.update(users)
-        .set({ language: intent.language })
-        .where(eq(users.whatsappNumber, senderJid));
-    }
-    
-    const newT = getT(intent.language);
-    await sendTextMessage(remoteJid, newT.language_change_success);
-    return { status: 'processed_language_change' };
   }
 
   if (intent.type === 'report') {
@@ -139,7 +116,6 @@ export async function handleGroupUpsert(payload: any) {
     name: subject || 'Untitled Group',
     addedBy: authorizingUser,
     isActive: true,
-    language: 'id',
     updatedAt: new Date(),
   }).onConflictDoUpdate({
     target: groups.jid,

@@ -1,6 +1,5 @@
 {
   "welcome_onboarding": "*Halo!* 👋\n\nSelamat datang di *ExpenseBot*. Saya akan membantu Anda mencatat pengeluaran dan pemasukan langsung dari WhatsApp.\n\nSebelum mulai, boleh saya tahu nama Anda?",
-  "onboarding_language_select": "*Selamat Datang!* 👋\n\nPilih bahasa yang ingin Anda gunakan:\n1. *ID* (Bahasa Indonesia)\n2. *EN* (English)\n\nKetik nomor atau kodenya.",
   "onboarding_name_prompt": "Boleh saya tahu nama Anda?",
   "onboarding_budget_prompt": "Salam kenal, *{{name}}*! 👋\n\nSetiap bulannya, berapa budget pengeluaran yang Anda rencanakan? (Contoh: \"5jt\" atau \"5.000.000\")\n\nKetik *skip* jika ingin melewati bagian ini.",
   "onboarding_completed": "Mantap, *{{name}}*! 🎉 Pendaftaran selesai.\n\nSekarang Anda bisa mulai mencatat pengeluaran, contoh:\n- \"Beli kopi 25rb\"\n- \"Gaji masuk 10jt\"",
@@ -26,7 +25,6 @@
   "report_no_data": "Tidak ada transaksi untuk periode ini.",
   "report_oldest_hint": "\n_(Menampilkan 30 transaksi terlama)_",
   "transaction_success": "✅ *Berhasil mencatat!*\n\n📌 Jenis: {{type}}\n💰 Jumlah: {{amount}}\n🏷️ Kategori: {{category}}",
-  "language_change_success": "✅ Bahasa berhasil diubah ke *Bahasa Indonesia*.",
   "error_generic": "Oops! Saya kesulitan memahami itu. Bisa coba ulangi kalimatnya?",
   "error_budget_parse": "Saya tidak menangkap jumlahnya. Bisa tolong sebutkan dengan jelas (contoh: '5jt') atau ketik 'skip' saja?",
   "label_income": "Pemasukan",

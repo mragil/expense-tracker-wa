@@ -1,6 +1,5 @@
 {
   "welcome_onboarding": "*Hello!* 👋\n\nWelcome to *ExpenseBot*. I will help you track your expenses and income directly from WhatsApp.\n\nBefore we start, may I know your name?",
-  "onboarding_language_select": "*Welcome!* 👋\n\nPlease choose your language:\n1. *ID* (Bahasa Indonesia)\n2. *EN* (English)\n\nType the number or the code.",
   "onboarding_name_prompt": "May I know your name?",
   "onboarding_budget_prompt": "Nice to meet you, *{{name}}*! 👋\n\nWhat is your planned monthly budget? (Example: \"500k\" or \"5.000.000\")\n\nType *skip* if you want to skip this.",
   "onboarding_completed": "Awesome, *{{name}}*! 🎉 Registration complete.\n\nNow you can start logging expenses, for example:\n- \"Coffee 25k\"\n- \"Salary 10m\"",
@@ -26,7 +25,6 @@
   "report_no_data": "No transactions for this period.",
   "report_oldest_hint": "\n_(Showing oldest 30 transactions)_",
   "transaction_success": "✅ *Success caching!*\n\n📌 Type: {{type}}\n💰 Amount: {{amount}}\n🏷️ Category: {{category}}",
-  "language_change_success": "✅ Language successfully changed to *English*.",
   "error_generic": "Oops! I'm having trouble understanding that. Could you try rephrasing your sentence?",
   "error_budget_parse": "I couldn't quite catch the amount. Could you please specify it clearly (e.g., '500k') or type 'skip' to do it later?",
   "label_income": "Income",
