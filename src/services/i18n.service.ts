@@ -1,0 +1,30 @@
+import id from '../translations/id.json';
+import en from '../translations/en.json';
+
+export type Language = 'id' | 'en';
+
+const dictionaries: Record<Language, any> = { id, en };
+
+export function getT(lang: Language = 'id') {
+  const dict = dictionaries[lang] || dictionaries['id'];
+
+  return {
+    ...dict,
+    onboarding_budget_prompt: (name: string) => dict.onboarding_budget_prompt.replace('{{name}}', name),
+    onboarding_completed: (name: string) => dict.onboarding_completed.replace('{{name}}', name),
+    budget_update_success: (amount: string) => dict.budget_update_success.replace('{{amount}}', amount),
+    report_title: (period: string) => dict.report_title.replace('{{period}}', period),
+    transaction_success: (type: string, amount: string, category: string) => 
+      dict.transaction_success
+        .replace('{{type}}', type === 'income' ? (lang === 'id' ? 'Pemasukan' : 'Income') : (lang === 'id' ? 'Pengeluaran' : 'Expense'))
+        .replace('{{amount}}', amount)
+        .replace('{{category}}', category),
+    
+    // Help sections (flattened in JSON)
+    help_menu_sections: {
+      logging: dict.help_logging,
+      reports: dict.help_reports,
+      footer: dict.help_footer
+    }
+  };
+}

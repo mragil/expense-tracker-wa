@@ -2,8 +2,10 @@ import { db } from '../db/index';
 import { transactions } from '../db/schema';
 import { and, eq, gte } from 'drizzle-orm';
 import { sendTextMessage } from '../lib/evolution';
+import { getT, type Language } from './i18n.service';
 
-export async function generateSummary(remoteJid: string, period: 'today' | 'week' | 'month' | 'year') {
+export async function generateSummary(remoteJid: string, period: 'today' | 'week' | 'month' | 'year', lang: Language = 'id') {
+  const t = getT(lang);
   const now = new Date();
   let startDate = new Date();
 
@@ -13,7 +15,7 @@ export async function generateSummary(remoteJid: string, period: 'today' | 'week
       break;
     case 'week':
       const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
       startDate.setDate(diff);
       startDate.setHours(0, 0, 0, 0);
       break;
@@ -33,7 +35,7 @@ export async function generateSummary(remoteJid: string, period: 'today' | 'week
   );
 
   if (userTransactions.length === 0) {
-    await sendTextMessage(remoteJid, `No transactions found for ${period}.`);
+    await sendTextMessage(remoteJid, t.report_no_data);
     return;
   }
 
@@ -47,7 +49,6 @@ export async function generateSummary(remoteJid: string, period: 'today' | 'week
   }, { totalIncome: 0, totalExpense: 0 });
 
   const net = summary.totalIncome - summary.totalExpense;
-  const status = net >= 0 ? 'Surplus' : 'Deficit';
   const emoji = net >= 0 ? '📈' : '📉';
 
   let detailsText = '';
@@ -58,29 +59,34 @@ export async function generateSummary(remoteJid: string, period: 'today' | 'week
       return dateA - dateB;
     });
 
-    detailsText = '\n\n*Details:*\n' + 
+    detailsText = `\n\n*${t.report_details}*\n` + 
       sortedDetails
         .slice(0, 30)
-        .map(t => {
-          const tEmoji = t.transactionType === 'income' ? '💰' : '💸';
-          const amountStr = t.amount.toLocaleString('id-ID');
-          const timeStr = t.createdAt ? new Date(t.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-          const desc = t.description ? `: ${t.description}` : '';
-          return `[${timeStr}] ${tEmoji} ${amountStr} - ${t.category}${desc}`;
+        .map(trx => {
+          const tEmoji = trx.transactionType === 'income' ? '💰' : '💸';
+          const amountStr = trx.amount.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US');
+          const timeStr = trx.createdAt ? new Date(trx.createdAt).toLocaleTimeString(lang === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+          const desc = trx.description ? `: ${trx.description}` : '';
+          return `[${timeStr}] ${tEmoji} ${amountStr} - ${trx.category}${desc}`;
         })
         .join('\n');
     
     if (userTransactions.length > 30) {
-      detailsText += '\n_(Showing oldest 30 transactions)_';
+      detailsText += lang === 'id' ? '\n_(Menampilkan 30 transaksi terlama)_' : '\n_(Showing oldest 30 transactions)_';
     }
   }
 
-  const reportText = `*Summary Report (${period.charAt(0).toUpperCase() + period.slice(1)})* ${emoji}\n\n` +
-    `*Total Income:* ${summary.totalIncome.toLocaleString()}\n` +
-    `*Total Expense:* ${summary.totalExpense.toLocaleString()}\n` +
+  const periodLabel = lang === 'en' ? period.charAt(0).toUpperCase() + period.slice(1) : (
+    period === 'today' ? 'Hari Ini' :
+    period === 'week' ? 'Minggu Ini' :
+    period === 'month' ? 'Bulan Ini' : 'Tahun Ini'
+  );
+
+  const reportText = `${t.report_title(periodLabel)} ${emoji}\n\n` +
+    `${t.report_income}${summary.totalIncome.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}\n` +
+    `${t.report_expense}${summary.totalExpense.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}\n` +
     `--------------------------\n` +
-    `*Net Balance:* ${net.toLocaleString()}\n` +
-    `*Status:* ${status}${detailsText}`;
+    `${t.report_balance}${net.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}${detailsText}`;
 
   await sendTextMessage(remoteJid, reportText);
 }

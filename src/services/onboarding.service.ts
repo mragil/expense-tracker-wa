@@ -1,22 +1,42 @@
 import { db } from '../db/index';
 import { users, budgets } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { sendTextMessage } from '../lib/evolution';
 import { extractName, extractBudget } from '../lib/ai';
+import { getT, type Language } from './i18n.service';
 
+async function handleLanguageStep(remoteJid: string, messageText: string) {
+  const text = messageText.toLowerCase();
+  let lang: Language = 'id';
+  if (text.includes('en') || text === '2') {
+    lang = 'en';
+  }
 
-async function handleNameStep(remoteJid: string, messageText: string) {
-  const name = await extractName(messageText);
-  await db.update(users).set({ displayName: name, onboardingStep: 'budget' }).where(eq(users.whatsappNumber, remoteJid));
-  await sendTextMessage(remoteJid, `Nice to meet you, ${name}! 👋\n\nNow, what is your *Target Monthly Budget*? (e.g., "5jt" or "3000000")\n\nI will use this to track your spending and notify you if you're getting close to your limit. 📊\n\n_Wait, not ready? Type *SKIP* to set it later!_`);
+  await db.update(users)
+    .set({ language: lang, onboardingStep: 'name' })
+    .where(eq(users.whatsappNumber, remoteJid));
+  
+  const t = getT(lang);
+  await sendTextMessage(remoteJid, t.onboarding_name_prompt);
 }
 
-async function handleBudgetStep(remoteJid: string, messageText: string) {
-  const isSkip = messageText.toLowerCase().includes('skip') || messageText.toLowerCase().includes('nanti');
+async function handleNameStep(remoteJid: string, messageText: string, user: any) {
+  const name = await extractName(messageText);
+  await db.update(users)
+    .set({ displayName: name, onboardingStep: 'budget' })
+    .where(eq(users.whatsappNumber, remoteJid));
   
+  const t = getT(user.language as Language);
+  await sendTextMessage(remoteJid, t.onboarding_budget_prompt(name));
+}
+
+async function handleBudgetStep(remoteJid: string, messageText: string, user: any) {
+  const isSkip = messageText.toLowerCase().includes('skip') || messageText.toLowerCase().includes('nanti');
+  const t = getT(user.language as Language);
+
   if (isSkip) {
     await db.update(users).set({ onboardingStep: 'completed', isActive: true }).where(eq(users.whatsappNumber, remoteJid));
-    await sendTextMessage(remoteJid, "No problem! You can set your monthly budget anytime by typing something like 'Budget 5jt'.\n\nNow you're all set! You can log expenses naturally (e.g., 'Spent 50k for lunch'). 🚀");
+    await sendTextMessage(remoteJid, t.onboarding_completed(user.displayName));
     return;
   }
 
@@ -28,19 +48,25 @@ async function handleBudgetStep(remoteJid: string, messageText: string) {
       period: 'month',
     });
     await db.update(users).set({ onboardingStep: 'completed', isActive: true }).where(eq(users.whatsappNumber, remoteJid));
-    await sendTextMessage(remoteJid, `Perfect! Your monthly budget of *${budgetInfo.amount.toLocaleString('id-ID')}* is set. ✅\n\nYou're all set! You can log expenses naturally (e.g., 'Spent 50k for lunch'), or ask 'what is my expense for today?' anytime.`);
+    await sendTextMessage(remoteJid, t.onboarding_completed(user.displayName));
   } else {
-    await sendTextMessage(remoteJid, "I couldn't quite catch the amount. Could you please specify it clearly (e.g., '5jt') or type 'skip' to do it later?");
+    const errorMsg = user.language === 'en' 
+      ? "I couldn't quite catch the amount. Could you please specify it clearly (e.g., '500k') or type 'skip' to do it later?"
+      : "Saya tidak menangkap jumlahnya. Bisa tolong sebutkan dengan jelas (contoh: '5jt') atau ketik 'skip' saja?";
+    await sendTextMessage(remoteJid, errorMsg);
   }
 }
 
 export async function handleOnboarding(remoteJid: string, messageText: string, user: any) {
   switch (user.onboardingStep) {
+    case 'language':
+      await handleLanguageStep(remoteJid, messageText);
+      break;
     case 'name':
-      await handleNameStep(remoteJid, messageText);
+      await handleNameStep(remoteJid, messageText, user);
       break;
     case 'budget':
-      await handleBudgetStep(remoteJid, messageText);
+      await handleBudgetStep(remoteJid, messageText, user);
       break;
   }
 }
@@ -48,7 +74,12 @@ export async function handleOnboarding(remoteJid: string, messageText: string, u
 export async function startOnboarding(remoteJid: string) {
   await db.insert(users).values({
     whatsappNumber: remoteJid,
-    onboardingStep: 'name',
+    onboardingStep: 'language',
+  }).onConflictDoUpdate({
+    target: users.whatsappNumber,
+    set: { onboardingStep: 'language' }
   });
-  await sendTextMessage(remoteJid, "Welcome to ExpenseBot! 📊 Before we start, what should I call you?");
+  
+  const t = getT('id'); // Default to ID for the initial prompt
+  await sendTextMessage(remoteJid, t.onboarding_language_select);
 }

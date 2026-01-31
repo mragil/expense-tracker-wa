@@ -65,7 +65,12 @@ export interface BudgetUpdateData {
   period: 'day' | 'month' | 'year';
 }
 
-export type UserIntent = TransactionData | ReportData | BudgetInquiryData | BudgetUpdateData | { error: string };
+export interface LanguageChangeData {
+  type: 'language_change';
+  language: 'id' | 'en';
+}
+
+export type UserIntent = TransactionData | ReportData | BudgetInquiryData | BudgetUpdateData | LanguageChangeData | { error: string };
 
 export async function extractIntent(userMessage: string): Promise<UserIntent> {
   const systemPrompt = `You are an Expense Tracker assistant.
@@ -98,16 +103,25 @@ If setting or updating their budget (e.g., "budget 3000000", "set budget 5jt", "
   "period": "day" | "month" | "year"
 }
 
+If asking to change language (e.g., "Change language to English", "Ganti bahasa ke Indonesia", "bahasa inggris", "english"), return JSON:
+{
+  "type": "language_change",
+  "language": "id" | "en"
+}
+
 Rules:
 1. "transactionType" must be exactly "income" or "expense".
 2. "amount" must be a positive number.
 3. "category" should be a short, one-word category (e.g., food, transport, salary, bills).
 4. "description" should be what the user spent it on.
-5. "period" must be exactly "month" for budget updates, as all budgets are currently monthly. For reports, it defaults to "today" if not specified.
-6. Support English and Indonesian (e.g., "rekap", "laporan", "sisa budget", "budget saya", "set budget").
-7. If the user asks "berapa pengeluaran hari ini", it is a report with period "today".
+5. "period" must be exactly "month" for budget updates. For reports, it defaults to "today" if not specified.
+6. EXPLICITLY SUPPORT both English and Indonesian commands:
+   - Reports: "rekap", "laporan", "summary", "history".
+   - Budget: "sisa budget", "budget saya", "my budget", "remaining budget".
+   - Transactions: "beli", "jajan", "makan", "spent", "bought", "income", "pemasukan", "gaji".
+7. If the user asks "berapa pengeluaran hari ini" or "how much did I spend today", it is a report with period "today".
 8. If the message is NOT related to spending, income, budget management, or reports, respond with {"error": "unsupported_topic"}.
-9. Do NOT include any markdown or extra text in your response.`;
+9. Do NOT include any markdown or extra text.`;
 
   const result = await extractInformation(systemPrompt, userMessage);
   try {

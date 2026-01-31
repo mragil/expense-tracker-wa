@@ -6,3 +6,5 @@ drizzle
 *.log
 PRD.md
 AGENTS.md
+ngrok.json
+build

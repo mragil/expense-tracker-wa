@@ -3,8 +3,9 @@ import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 export const users = sqliteTable('users', {
   whatsappNumber: text('whatsapp_number').primaryKey(),
   displayName: text('display_name'),
-  onboardingStep: text('onboarding_step').default('name'),
+  onboardingStep: text('onboarding_step').default('language'),
   isActive: integer('is_active', { mode: 'boolean' }).default(false),
+  language: text('language').default('id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
@@ -49,6 +50,7 @@ export const groups = sqliteTable('groups', {
   name: text('name'),
   addedBy: text('added_by').notNull(),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  language: text('language').default('id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });

@@ -9,6 +9,7 @@ import { extractIntent } from '../lib/ai';
 import * as reportService from './report.service';
 import * as budgetService from './budget.service';
 import { leaveGroup } from '../lib/evolution';
+import { getT, type Language } from './i18n.service';
 
 export async function handleWebhook(payload: EvolutionWebhookPayload) {
   if (payload.event !== 'messages.upsert' || payload.data.key.fromMe) {
@@ -31,39 +32,42 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
 
   if (!messageText) return { status: 'no_text' };
 
+  let groupData: any = null;
   if (isGroup) {
     // Lazy Group Registration: Register group on first interaction if missed join event
-    const group = await db.query.groups.findFirst({
+    groupData = await db.query.groups.findFirst({
       where: eq(groups.jid, remoteJid),
     });
 
-    if (!group) {
-      await db.insert(groups).values({
+    if (!groupData) {
+      groupData = {
         jid: remoteJid,
-        addedBy: senderJid, // Fallback to first interactor
+        addedBy: senderJid,
         isActive: true,
+        language: 'id',
         updatedAt: new Date(),
-      });
+      };
+      await db.insert(groups).values(groupData);
       console.log(`Lazy registered group: ${remoteJid} via interaction from ${senderJid}`);
       
-      await sendGroupWelcomeMessage(remoteJid);
+      await sendGroupWelcomeMessage(remoteJid, 'id');
       return { status: 'group_welcome_sent' };
-    } else if (!group.isActive) {
+    } else if (!groupData.isActive) {
       await db.update(groups)
         .set({ isActive: true, addedBy: senderJid, updatedAt: new Date() })
         .where(eq(groups.jid, remoteJid));
       console.log(`Reactivated group: ${remoteJid} via interaction from ${senderJid}`);
       
-      await sendGroupWelcomeMessage(remoteJid);
+      await sendGroupWelcomeMessage(remoteJid, groupData.language as Language || 'id');
       return { status: 'group_reactivated' };
     }
   }
 
-  if (!isGroup) {
-    const user = await db.query.users.findFirst({
-      where: eq(users.whatsappNumber, senderJid),
-    });
+  const user = await db.query.users.findFirst({
+    where: eq(users.whatsappNumber, senderJid),
+  });
 
+  if (!isGroup) {
     if (!user) {
       await onboarding.startOnboarding(remoteJid);
       return { status: 'onboarding_started' };
@@ -75,49 +79,62 @@ export async function handleWebhook(payload: EvolutionWebhookPayload) {
     }
   }
 
+  let lang: Language = (user?.language as Language) || 'id';
+  if (isGroup && groupData?.language) {
+    lang = groupData.language as Language;
+  }
+  const t = getT(lang);
   const intent = await extractIntent(messageText);
 
   if ('error' in intent) {
     if (intent.error === 'unsupported_topic') {
       const helpMessage = 
-        `*🤖 ExpenseBot Help Menu*\n\n` +
-        `Saya tidak yakin apa yang Anda maksud. Berikut adalah beberapa hal yang bisa saya bantu:\n\n` +
-        `*1️⃣ Pencatatan (Pemasukan/Pengeluaran)*\n` +
-        `Cukup ketik secara alami, contoh:\n` +
-        `• _"Beli kopi 25rb"_\n` +
-        `• _"Gajian 5 juta"_\n` +
-        `• _"Tadi makan siang soto 30.000"_\n\n` +
-        `*2️⃣ Laporan Keuangan*\n` +
-        `Tanyakan ringkasan saldo Anda, contoh:\n` +
-        `• _"Pengeluaran hari ini"_\n` +
-        `• _"Laporan minggu ini"_\n` +
-        `• _"Berapa sisa budget bulan ini?"_\n\n` +
-        `Silakan pilih salah satu opsi di atas atau ketik pertanyaan Anda! 📈💸`;
+        `${t.help_menu_title}\n\n` +
+        `${t.help_menu_unsupported}\n\n` +
+        `${t.help_menu_sections.logging}\n\n` +
+        `${t.help_menu_sections.reports}\n\n` +
+        `${t.help_menu_sections.footer}`;
 
       await sendTextMessage(remoteJid, helpMessage);
     } else {
-      await sendTextMessage(remoteJid, "Oops! Saya kesulitan memahami itu. Bisa coba ulangi kalimatnya?");
+      await sendTextMessage(remoteJid, t.error_generic);
     }
     return { status: 'unsupported_topic' };
   }
 
+  if (intent.type === 'language_change') {
+    if (isGroup) {
+      await db.update(groups)
+        .set({ language: intent.language, updatedAt: new Date() })
+        .where(eq(groups.jid, remoteJid));
+    } else {
+      await db.update(users)
+        .set({ language: intent.language })
+        .where(eq(users.whatsappNumber, senderJid));
+    }
+    
+    const newT = getT(intent.language);
+    await sendTextMessage(remoteJid, newT.language_change_success);
+    return { status: 'processed_language_change' };
+  }
+
   if (intent.type === 'report') {
-    await reportService.generateSummary(remoteJid, intent.period);
+    await reportService.generateSummary(remoteJid, intent.period, lang);
     return { status: 'processed_report' };
   }
 
   if (intent.type === 'budget_inquiry') {
-    await budgetService.checkBudget(remoteJid);
+    await budgetService.checkBudget(remoteJid, lang);
     return { status: 'processed_budget_inquiry' };
   }
 
   if (intent.type === 'budget_update') {
-    await budgetService.updateBudget(remoteJid, intent.amount);
+    await budgetService.updateBudget(remoteJid, intent.amount, lang);
     return { status: 'processed_budget_update' };
   }
 
   if (intent.type === 'transaction') {
-    await transaction.handleTransaction(remoteJid, intent, senderJid);
+    await transaction.handleTransaction(remoteJid, intent, senderJid, lang);
     return { status: 'processed_transaction' };
   }
 
@@ -174,14 +191,25 @@ export async function handleGroupUpdate(payload: any) {
   return { status: 'ignored' };
 }
 
-async function sendGroupWelcomeMessage(remoteJid: string) {
-  const welcomeMessage = `*Halo Semuanya!* 👋\n\n` +
+async function sendGroupWelcomeMessage(remoteJid: string, lang: Language = 'id') {
+  const t = getT(lang);
+  const welcomeMessage = lang === 'id' ? (
+    `*Halo Semuanya!* 👋\n\n` +
     `Saya adalah *ExpenseBot*, asisten pencatat pengeluaran Anda.\n\n` +
     `Ketik pesan seperti:\n` +
     `- "Beli kopi 25rb"\n` +
     `- "Gajian 5jt"\n` +
     `- "Berapa pengeluaran hari ini?"\n\n` +
-    `Saya akan mencatat pengeluaran untuk *Grup ini*.`;
+    `Saya akan mencatat pengeluaran untuk *Grup ini*.`
+  ) : (
+    `*Hello Everyone!* 👋\n\n` +
+    `I am *ExpenseBot*, your expense tracking assistant.\n\n` +
+    `Type messages like:\n` +
+    `- "Coffee 25k"\n` +
+    `- "Salary 5m"\n` +
+    `- "What is today's expense?"\n\n` +
+    `I will track expenses for *this Group*.`
+  );
 
   await sendTextMessage(remoteJid, welcomeMessage);
 }
