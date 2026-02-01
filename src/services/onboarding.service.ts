@@ -1,9 +1,9 @@
 import { users, budgets } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { I18nService, i18nService } from '@/services/i18n.service';
 import type { Language, User } from '@/types';
-import * as evolution from '@/lib/evolution';
-import * as ai from '@/lib/ai';
+import type { I18nService } from '@/services/i18n.service';
+import type * as evolution from '@/lib/evolution';
+import type * as ai from '@/lib/ai';
 import { db as defaultDb } from '@/db/index';
 
 export class OnboardingService {
@@ -73,5 +73,3 @@ export class OnboardingService {
     await this.evolutionClient.sendTextMessage(remoteJid, t.onboarding_name_prompt);
   }
 }
-
-export const onboardingService = new OnboardingService(defaultDb, i18nService, evolution, ai);

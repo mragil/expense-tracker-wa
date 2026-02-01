@@ -41,6 +41,3 @@ export class I18nService {
   }
 }
 
-// Default instance for backward compatibility or direct use if not using DI everywhere yet
-export const i18nService = new I18nService();
-export const getT = (lang?: Language) => i18nService.getT(lang);

@@ -1,6 +1,6 @@
 import { transactions } from '@/db/schema';
 import type { TransactionData, Language } from '@/types';
-import { I18nService, i18nService } from '@/services/i18n.service';
+import type { I18nService } from '@/services/i18n.service';
 import * as evolution from '@/lib/evolution';
 import { db as defaultDb } from '@/db/index';
 
@@ -33,5 +33,3 @@ export class TransactionService {
   }
 }
 
-// Default instance
-export const transactionService = new TransactionService(defaultDb, i18nService, evolution);

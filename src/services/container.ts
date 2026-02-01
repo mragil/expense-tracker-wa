@@ -1,28 +1,39 @@
 import { db } from '@/db/index';
 import * as evolution from '@/lib/evolution';
 import * as ai from '@/lib/ai';
-import { i18nService } from '@/services/i18n.service';
-import { onboardingService } from '@/services/onboarding.service';
-import { transactionService } from '@/services/transaction.service';
-import { budgetService } from '@/services/budget.service';
-import { reportService } from '@/services/report.service';
-import { webhookService } from '@/services/webhook.service';
+import { I18nService } from '@/services/i18n.service';
+import { OnboardingService } from '@/services/onboarding.service';
+import { TransactionService } from '@/services/transaction.service';
+import { BudgetService } from '@/services/budget.service';
+import { ReportService } from '@/services/report.service';
+import { WebhookService } from '@/services/webhook.service';
+import type { Services } from '@/types';
 
-/**
- * Service Container
- * Provides a single point of access for all orchestrated service instances.
- * This can be expanded to a full DI container if needed.
- */
-export const container = {
-  db,
-  evolution,
-  ai,
-  i18n: i18nService,
-  onboarding: onboardingService,
-  transaction: transactionService,
-  budget: budgetService,
-  report: reportService,
-  webhook: webhookService,
-};
+export function createContainer(): Services {
+  const i18n = new I18nService();
+  const onboarding = new OnboardingService(db, i18n, evolution, ai);
+  const transaction = new TransactionService(db, i18n, evolution);
+  const budget = new BudgetService(db, i18n, evolution);
+  const report = new ReportService(db, i18n, evolution);
+  const webhook = new WebhookService(
+    db,
+    i18n,
+    onboarding,
+    transaction,
+    budget,
+    report,
+    evolution,
+    ai
+  );
 
-export type Container = typeof container;
+  return {
+    i18n,
+    onboarding,
+    transaction,
+    budget,
+    report,
+    webhook,
+  };
+}
+
+export type Container = Services;

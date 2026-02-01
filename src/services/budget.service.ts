@@ -1,6 +1,6 @@
 import { budgets, transactions } from '@/db/schema';
 import { and, eq, gte, desc } from 'drizzle-orm';
-import { I18nService, i18nService } from '@/services/i18n.service';
+import type { I18nService } from '@/services/i18n.service';
 import type { Language } from '@/types';
 import * as evolution from '@/lib/evolution';
 import { db as defaultDb } from '@/db/index';
@@ -66,4 +66,3 @@ export class BudgetService {
   }
 }
 
-export const budgetService = new BudgetService(defaultDb, i18nService, evolution);

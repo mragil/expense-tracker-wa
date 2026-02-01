@@ -90,3 +90,18 @@ export interface EvolutionGroupUpdatePayload {
     }>;
   };
 }
+
+export interface Services {
+  onboarding: any;
+  transaction: any;
+  budget: any;
+  report: any;
+  webhook: any;
+  i18n: any;
+}
+
+export interface AppEnv {
+  Variables: {
+    services: Services;
+  };
+}

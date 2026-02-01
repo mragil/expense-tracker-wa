@@ -1,6 +1,6 @@
 import { transactions } from '@/db/schema';
 import { and, eq, gte, lte } from 'drizzle-orm';
-import { I18nService, i18nService } from '@/services/i18n.service';
+import type { I18nService } from '@/services/i18n.service';
 import type { Language, ReportData } from '@/types';
 import * as evolution from '@/lib/evolution';
 import { db as defaultDb } from '@/db/index';
@@ -136,4 +136,3 @@ export class ReportService {
   }
 }
 
-export const reportService = new ReportService(defaultDb, i18nService, evolution);

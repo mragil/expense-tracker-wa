@@ -1,14 +1,14 @@
 import { users, groups } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
-import * as evolution from '@/lib/evolution';
-import { OnboardingService, onboardingService } from '@/services/onboarding.service';
-import { TransactionService, transactionService } from '@/services/transaction.service';
-import { extractIntent } from '@/lib/ai';
-import { ReportService, reportService } from '@/services/report.service';
-import { BudgetService, budgetService } from '@/services/budget.service';
-import { I18nService, i18nService } from '@/services/i18n.service';
+import { and, eq } from 'drizzle-orm';
+import type * as evolution from '@/lib/evolution';
+import type { OnboardingService } from '@/services/onboarding.service';
+import type { TransactionService } from '@/services/transaction.service';
+import type { ReportService } from '@/services/report.service';
+import type { BudgetService } from '@/services/budget.service';
+import type { I18nService } from '@/services/i18n.service';
 import { db as defaultDb } from '@/db/index';
 import type { EvolutionWebhookPayload, Language, EvolutionGroupUpsertPayload, EvolutionGroupUpdatePayload, User } from '@/types';
+import type * as ai from '@/lib/ai';
 
 export class WebhookService {
   constructor(
@@ -19,7 +19,7 @@ export class WebhookService {
     private budget: BudgetService,
     private report: ReportService,
     private evolutionClient: typeof evolution,
-    private aiClient: { extractIntent: typeof extractIntent }
+    private aiClient: typeof ai
   ) {}
 
   async handleWebhook(payload: EvolutionWebhookPayload) {
@@ -204,14 +204,3 @@ export class WebhookService {
   }
 }
 
-// Default instance
-export const webhookService = new WebhookService(
-  defaultDb,
-  i18nService,
-  onboardingService,
-  transactionService,
-  budgetService,
-  reportService,
-  evolution,
-  { extractIntent }
-);
