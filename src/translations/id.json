@@ -32,5 +32,8 @@
   "label_today": "Hari Ini",
   "label_week": "Minggu Ini",
   "label_month": "Bulan Ini",
-  "label_year": "Tahun Ini"
+  "label_last_month": "Bulan Lalu",
+  "label_year": "Tahun Ini",
+  "label_all": "Semua Transaksi",
+  "label_custom": "Periode Kustom"
 }

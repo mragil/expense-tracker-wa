@@ -32,5 +32,8 @@
   "label_today": "Today",
   "label_week": "This Week",
   "label_month": "This Month",
-  "label_year": "This Year"
+  "label_last_month": "Last Month",
+  "label_year": "This Year",
+  "label_all": "All Transactions",
+  "label_custom": "Custom Period"
 }

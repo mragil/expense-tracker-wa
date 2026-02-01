@@ -1,26 +1,37 @@
-import { db } from '../db/index';
-import { transactions } from '../db/schema';
-import { sendTextMessage } from '../lib/evolution';
-import type { TransactionData } from '../lib/ai';
-import { getT, type Language } from './i18n.service';
+import { transactions } from '@/db/schema';
+import type { TransactionData, Language } from '@/types';
+import { I18nService, i18nService } from '@/services/i18n.service';
+import * as evolution from '@/lib/evolution';
+import { db as defaultDb } from '@/db/index';
 
-export async function handleTransaction(remoteJid: string, data: TransactionData, loggedBy?: string, lang: Language = 'id') {
-  const t = getT(lang);
-  const { amount, transactionType: type, category, description } = data;
+export class TransactionService {
+  constructor(
+    private db: typeof defaultDb,
+    private i18n: I18nService,
+    private evolutionClient: typeof evolution
+  ) {}
 
-  await db.insert(transactions).values({
-    whatsappId: remoteJid,
-    amount,
-    transactionType: type,
-    category,
-    description,
-    loggedBy: loggedBy || remoteJid,
-  });
+  async handleTransaction(remoteJid: string, data: TransactionData, loggedBy?: string, lang: Language = 'id') {
+    const t = this.i18n.getT(lang);
+    const { amount, transactionType: type, category, description } = data;
 
-  const amountStr = amount.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US');
-  const typeLabel = t.label(type);
-  
-  const confirmationText = t.transaction_success(typeLabel, amountStr, category) + (description ? `\n\n_Notes: ${description}_` : '');
+    await this.db.insert(transactions).values({
+      whatsappId: remoteJid,
+      amount,
+      transactionType: type,
+      category,
+      description,
+      loggedBy: loggedBy || remoteJid,
+    });
 
-  await sendTextMessage(remoteJid, confirmationText);
+    const amountStr = amount.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US');
+    const typeLabel = t.label(type);
+    
+    const confirmationText = t.transaction_success(typeLabel, amountStr, category) + (description ? `\n\n_Notes: ${description}_` : '');
+
+    await this.evolutionClient.sendTextMessage(remoteJid, confirmationText);
+  }
 }
+
+// Default instance
+export const transactionService = new TransactionService(defaultDb, i18nService, evolution);

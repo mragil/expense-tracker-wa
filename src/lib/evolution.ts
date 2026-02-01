@@ -2,30 +2,11 @@ import { config } from 'dotenv';
 
 config();
 
-const API_URL = process.env.EVOLUTION_API_URL;
-const API_KEY = process.env.EVOLUTION_API_KEY;
-const INSTANCE = process.env.EVOLUTION_INSTANCE || 'main';
+const API_URL = process.env['EVOLUTION_API_URL'];
+const API_KEY = process.env['EVOLUTION_API_KEY'];
+const INSTANCE = process.env['EVOLUTION_INSTANCE'] || 'main';
 
-export interface EvolutionWebhookPayload {
-  event: string;
-  instance: string;
-  data: {
-    key: {
-      remoteJid: string;
-      fromMe: boolean;
-      id: string;
-      participant?: string;
-    };
-    message?: {
-      conversation?: string;
-      extendedTextMessage?: {
-        text: string;
-      };
-    };
-    pushName?: string;
-    author?: string;
-  };
-}
+import type { EvolutionWebhookPayload } from '@/types';
 
 export async function sendTextMessage(remoteJid: string, text: string, instance: string = INSTANCE) {
   try {
@@ -87,7 +68,7 @@ export async function leaveGroup(instance: string, groupJid: string) {
 }
 
 export function isWhitelisted(jid: string): boolean {
-  const whitelist = process.env.EVOLUTION_WHITELISTED_NUMBERS?.split(',') || [];
+  const whitelist = process.env['EVOLUTION_WHITELISTED_NUMBERS']?.split(',') || [];
   return whitelist.includes(jid);
 }
 

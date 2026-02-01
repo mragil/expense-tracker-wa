@@ -2,8 +2,8 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { config } from 'dotenv';
-import * as webhookService from './services/webhook.service';
-import type { EvolutionWebhookPayload } from './lib/evolution';
+import { webhookService } from '@/services/webhook.service';
+import type { EvolutionWebhookPayload } from '@/types';
 
 config();
 
@@ -58,7 +58,7 @@ app.post('/webhook/groups-upsert', async (c) => {
   }
 });
 
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env['PORT']) || 3000;
 console.log(`Main service is running on port ${port}`);
 
 serve({
