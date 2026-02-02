@@ -61,6 +61,7 @@ cp .env.example .env
 | `DATABASE_URL` | Path to your SQLite file | `sqlite.db` |
 | `EVOLUTION_API_URL` | Your Evolution API instance URL | - |
 | `EVOLUTION_API_KEY` | Your Evolution API Global Key | - |
+| `EVOLUTION_WHITELISTED_NUMBERS` | Comma-separated WhatsApp JIDs (e.g. `628xxx@s.whatsapp.net`) | - |
 | `OPEN_FOR_PUBLIC` | Set to `true` to skip whitelist checks | `false` |
 
 ### 3. Run Locally
