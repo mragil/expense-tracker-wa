@@ -1,27 +1,10 @@
 services:
-  # Migration job - runs once before app starts
-  migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: migrator
-    container_name: expense-tracker-migrate
-    volumes:
-      - ./data:/app/data
-    environment:
-      - DATABASE_URL=/app/data/sqlite.db
-
-  # Main application
   app:
     build:
       context: .
       dockerfile: Dockerfile
-      target: runner
     container_name: expense-tracker-wa
     restart: always
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
     ports:
       - "${PORT:-3000}:3000"
     volumes:
