@@ -1,0 +1,4 @@
+{
+  "verbose": false,
+  "replacers": ["tsc-alias-replace-import-extension"]
+}

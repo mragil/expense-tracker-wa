@@ -1,5 +1,5 @@
-import id from '@/translations/id.json';
-import en from '@/translations/en.json';
+import id from '@/translations/id.json' with { type: 'json' };
+import en from '@/translations/en.json' with { type: 'json' };
 
 import type { Language } from '@/types';
 
