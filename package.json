@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node dist/index.js",
     "test": "vitest run",
     "db:push": "drizzle-kit push",
@@ -40,6 +40,7 @@
     "@types/pdfkit": "^0.13.9",
     "drizzle-kit": "^0.30.4",
     "husky": "^9.1.7",
+    "tsc-alias": "^1.8.16",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vite-tsconfig-paths": "^6.0.5",
