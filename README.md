@@ -74,7 +74,21 @@ pnpm run db:push
 pnpm run dev
 ```
 
-### 4. Run with Docker
+### 4. Run with Docker Compose (Recommended)
+
+The easiest way to deploy is using Docker Compose, which handles the persistent database volume automatically:
+
+```bash
+# Start the application
+docker compose up -d
+
+# Initialize/Update the database schema (Run this once or after schema changes)
+docker compose exec app pnpm run db:push
+```
+
+### 5. Manual Docker Run
+
+If you prefer to run it manually:
 
 ```bash
 # Build the image
