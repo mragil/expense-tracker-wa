@@ -21,9 +21,10 @@ FROM node:20-slim AS runner
 
 WORKDIR /app
 
-# Install runtime dependencies for better-sqlite3
+# Install runtime dependencies for better-sqlite3 and healthchecks
 RUN apt-get update && apt-get install -y \
     python3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml* ./
