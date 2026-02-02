@@ -51,4 +51,4 @@ COPY --from=builder /app/src/db /app/src/db
 
 RUN mkdir -p /app/data
 
-CMD ["pnpm", "run", "db:push"]
+CMD ["sh", "-c", "npx drizzle-kit push --force"]
