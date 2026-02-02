@@ -8,10 +8,14 @@ RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
+    libc6-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN npm install -g pnpm
+
 COPY package.json pnpm-lock.yaml* ./
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN pnpm pkg delete scripts.prepare
+RUN pnpm install
 
 COPY . .
 RUN pnpm run build
@@ -27,8 +31,11 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+RUN npm install -g pnpm
+
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml* ./
-RUN corepack enable && pnpm install --prod --frozen-lockfile
+RUN pnpm pkg delete scripts.prepare
+RUN pnpm install --prod
 
 COPY --from=builder /app/dist ./dist
 
