@@ -33,6 +33,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.3.13",
     "@types/better-sqlite3": "^7.6.11",
     "@types/exceljs": "^0.5.3",
     "@types/node": "^22.12.0",
