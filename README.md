@@ -42,7 +42,7 @@ A powerful, privacy-first WhatsApp bot that helps you manage your finances using
 ### 1. Installation
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/mragil/expense-tracker-wa.git
 cd expense-tracker-wa
 pnpm install
 ```
