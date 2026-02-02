@@ -30,8 +30,9 @@ export class WebhookService {
     const senderJid = payload.data.key.participant || payload.data.author || remoteJid;
     const isGroup = remoteJid.endsWith('@g.us');
 
-    // Whitelist check: required for personal chats, skipped for groups
-    if (!isGroup) {
+    // Whitelist check: required for personal chats, skipped for groups or if OPEN_FOR_PUBLIC is true
+    const isOpenForPublic = process.env['OPEN_FOR_PUBLIC'] === 'true';
+    if (!isGroup && !isOpenForPublic) {
       if (!this.evolutionClient.isWhitelisted(senderJid)) {
         return { status: 'not_whitelisted' };
       }
