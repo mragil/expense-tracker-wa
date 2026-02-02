@@ -51,4 +51,4 @@ COPY --from=builder /app/src/db /app/src/db
 
 RUN mkdir -p /app/data
 
-CMD ["sh", "-c", "npx drizzle-kit push --force"]
+CMD ["sh", "-c", "timeout 60 npx drizzle-kit push || true"]
