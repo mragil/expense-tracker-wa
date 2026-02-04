@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { OnboardingService } from '@/services/onboarding.service';
 import { I18nService } from '@/services/i18n.service';
 import type { User } from '@/types';
@@ -13,20 +13,20 @@ describe('OnboardingService', () => {
 
   beforeEach(() => {
     mockDb = {
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockReturnThis(),
-      onConflictDoUpdate: vi.fn().mockResolvedValue({}),
-      update: vi.fn().mockReturnThis(),
-      set: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue({}),
+      insert: mock(() => mockDb),
+      values: mock(() => mockDb),
+      onConflictDoUpdate: mock(() => Promise.resolve({})),
+      update: mock(() => mockDb),
+      set: mock(() => mockDb),
+      where: mock(() => Promise.resolve({})),
     };
     mockI18n = new I18nService();
     mockEvolution = {
-      sendTextMessage: vi.fn().mockResolvedValue({}),
+      sendTextMessage: mock(() => Promise.resolve({})),
     };
     mockAi = {
-      extractName: vi.fn().mockResolvedValue('Ally'),
-      extractBudget: vi.fn().mockResolvedValue({ amount: 1000000 }),
+      extractName: mock(() => Promise.resolve('Ally')),
+      extractBudget: mock(() => Promise.resolve({ amount: 1000000 })),
     };
     service = new OnboardingService(mockDb, mockI18n, mockEvolution, mockAi);
   });

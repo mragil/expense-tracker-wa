@@ -1,13 +1,11 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import { config } from 'dotenv';
 import { 
   NAME_EXTRACTION_PROMPT, 
   BUDGET_EXTRACTION_PROMPT, 
   INTENT_EXTRACTION_PROMPT 
 } from './prompts';
-
-config();
+import type { UserIntentWithLang } from '@/types';
 
 export async function extractInformation(prompt: string, userMessage: string) {
   const { text } = await generateText({
@@ -44,8 +42,6 @@ export async function extractBudget(userMessage: string): Promise<{ amount: numb
     return null;
   }
 }
-
-import type { UserIntentWithLang } from '@/types';
 
 export async function extractIntent(userMessage: string): Promise<UserIntentWithLang> {
   const dateContext = `Current date: ${new Date().toISOString().split('T')[0]}\n`;

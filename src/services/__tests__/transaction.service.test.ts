@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { TransactionService } from '@/services/transaction.service';
 import { I18nService } from '@/services/i18n.service';
 import type { TransactionData } from '@/types';
@@ -11,12 +11,12 @@ describe('TransactionService', () => {
 
   beforeEach(() => {
     mockDb = {
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockResolvedValue({}),
+      insert: mock(() => mockDb),
+      values: mock(() => Promise.resolve({})),
     };
     mockI18n = new I18nService();
     mockEvolution = {
-      sendTextMessage: vi.fn().mockResolvedValue({}),
+      sendTextMessage: mock(() => Promise.resolve({})),
     };
     service = new TransactionService(mockDb, mockI18n, mockEvolution);
   });

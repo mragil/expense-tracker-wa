@@ -5,10 +5,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "build": "tsc && tsc-alias && tsx scripts/add-js-extensions.ts",
-    "start": "node dist/index.js",
-    "test": "vitest run",
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start": "bun run dist/index.js",
+    "test": "bun test",
     "db:push": "drizzle-kit push",
     "lint": "biome lint .",
     "lint:fix": "biome check --write .",
@@ -21,29 +21,17 @@
   "license": "ISC",
   "dependencies": {
     "@ai-sdk/google": "^1.1.9",
-    "@hono/node-server": "^1.13.8",
-    "@libsql/client": "^0.17.0",
     "ai": "^4.1.17",
-    "better-sqlite3": "^11.8.1",
-    "dotenv": "^16.4.7",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.39.0",
-    "exceljs": "^4.4.0",
     "hono": "^4.6.20",
-    "pdfkit": "^0.16.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.13",
-    "@types/better-sqlite3": "^7.6.11",
-    "@types/exceljs": "^0.5.3",
+    "@types/bun": "latest",
     "@types/node": "^22.12.0",
-    "@types/pdfkit": "^0.13.9",
     "husky": "^9.1.7",
-    "tsc-alias": "^1.8.16",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3",
-    "vite-tsconfig-paths": "^6.0.5",
-    "vitest": "^4.0.18"
+    "typescript": "^5.7.3"
   }
 }

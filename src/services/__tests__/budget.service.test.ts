@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { BudgetService } from '@/services/budget.service';
 import { I18nService } from '@/services/i18n.service';
 
@@ -13,24 +13,24 @@ describe('BudgetService', () => {
     mockDb = {
       query: {
         budgets: {
-          findFirst: vi.fn(),
+          findFirst: mock(() => Promise.resolve(null)),
         },
       },
-      select: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue([]),
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockResolvedValue({}),
+      select: mock(() => mockDb),
+      from: mock(() => mockDb),
+      where: mock(() => Promise.resolve([])),
+      insert: mock(() => mockDb),
+      values: mock(() => Promise.resolve({})),
     };
     mockI18n = new I18nService();
     mockEvolution = {
-      sendTextMessage: vi.fn().mockResolvedValue({}),
+      sendTextMessage: mock(() => Promise.resolve({})),
     };
     service = new BudgetService(mockDb, mockI18n, mockEvolution);
   });
 
   it('should notify if no budget is found', async () => {
-    mockDb.query.budgets.findFirst.mockResolvedValue(null);
+    mockDb.query.budgets.findFirst = mock(() => Promise.resolve(null));
 
     await service.checkBudget('user123', 'en');
 
@@ -41,14 +41,14 @@ describe('BudgetService', () => {
   });
 
   it('should calculate remaining budget correctly', async () => {
-    mockDb.query.budgets.findFirst.mockResolvedValue({
+    mockDb.query.budgets.findFirst = mock(() => Promise.resolve({
       amount: 1000000,
       createdAt: new Date(),
-    });
-    mockDb.where.mockResolvedValue([
+    }));
+    mockDb.where = mock(() => Promise.resolve([
       { amount: 200000 },
       { amount: 300000 },
-    ]);
+    ]));
 
     await service.checkBudget('user123', 'id');
 

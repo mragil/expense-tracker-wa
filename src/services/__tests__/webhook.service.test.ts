@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { WebhookService } from '@/services/webhook.service';
 import { I18nService } from '@/services/i18n.service';
 
@@ -17,34 +17,34 @@ describe('WebhookService', () => {
   beforeEach(() => {
     mockDb = {
       query: {
-        users: { findFirst: vi.fn() },
+        users: { findFirst: mock(() => Promise.resolve(null)) },
       },
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockReturnThis(),
-      onConflictDoUpdate: vi.fn().mockResolvedValue({}),
+      insert: mock(() => mockDb),
+      values: mock(() => mockDb),
+      onConflictDoUpdate: mock(() => Promise.resolve({})),
     };
     mockI18n = new I18nService();
     mockOnboarding = {
-      startOnboarding: vi.fn().mockResolvedValue({}),
-      handleOnboarding: vi.fn().mockResolvedValue({}),
+      startOnboarding: mock(() => Promise.resolve({})),
+      handleOnboarding: mock(() => Promise.resolve({})),
     };
     mockTransaction = {
-      handleTransaction: vi.fn().mockResolvedValue({}),
+      handleTransaction: mock(() => Promise.resolve({})),
     };
     mockBudget = {
-      checkBudget: vi.fn().mockResolvedValue({}),
-      updateBudget: vi.fn().mockResolvedValue({}),
+      checkBudget: mock(() => Promise.resolve({})),
+      updateBudget: mock(() => Promise.resolve({})),
     };
     mockReport = {
-      generateSummary: vi.fn().mockResolvedValue({}),
+      generateSummary: mock(() => Promise.resolve({})),
     };
     mockEvolution = {
-      isWhitelisted: vi.fn().mockReturnValue(true),
-      extractMessageText: vi.fn().mockReturnValue('hello'),
-      sendTextMessage: vi.fn().mockResolvedValue({}),
+      isWhitelisted: mock(() => true),
+      extractMessageText: mock(() => 'hello'),
+      sendTextMessage: mock(() => Promise.resolve({})),
     };
     mockAi = {
-      extractIntent: vi.fn().mockResolvedValue({ type: 'transaction', detectedLanguage: 'en' }),
+      extractIntent: mock(() => Promise.resolve({ type: 'transaction', detectedLanguage: 'en' })),
     };
 
     service = new WebhookService(
@@ -75,7 +75,7 @@ describe('WebhookService', () => {
       data: { key: { fromMe: false, remoteJid: 'user123' } }
     } as any;
 
-    mockDb.query.users.findFirst.mockResolvedValue(null);
+    mockDb.query.users.findFirst = mock(() => Promise.resolve(null));
 
     const result = await service.handleWebhook(payload);
 
@@ -89,8 +89,8 @@ describe('WebhookService', () => {
       data: { key: { fromMe: false, remoteJid: 'user123' } }
     } as any;
 
-    mockDb.query.users.findFirst.mockResolvedValue({ onboardingStep: 'completed' });
-    mockAi.extractIntent.mockResolvedValue({ type: 'transaction', amount: 100, detectedLanguage: 'en' });
+    mockDb.query.users.findFirst = mock(() => Promise.resolve({ onboardingStep: 'completed' }));
+    mockAi.extractIntent = mock(() => Promise.resolve({ type: 'transaction', amount: 100, detectedLanguage: 'en' }));
 
     const result = await service.handleWebhook(payload);
 
@@ -104,8 +104,8 @@ describe('WebhookService', () => {
       data: { key: { fromMe: false, remoteJid: 'user123' } }
     } as any;
 
-    mockDb.query.users.findFirst.mockResolvedValue({ onboardingStep: 'completed' });
-    mockAi.extractIntent.mockResolvedValue({ type: 'report', period: 'month', detectedLanguage: 'en' });
+    mockDb.query.users.findFirst = mock(() => Promise.resolve({ onboardingStep: 'completed' }));
+    mockAi.extractIntent = mock(() => Promise.resolve({ type: 'report', period: 'month', detectedLanguage: 'en' }));
 
     const result = await service.handleWebhook(payload);
 

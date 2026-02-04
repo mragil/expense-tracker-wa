@@ -31,7 +31,7 @@ export class WebhookService {
     const isGroup = remoteJid.endsWith('@g.us');
 
     // Whitelist check: required for personal chats, skipped for groups or if OPEN_FOR_PUBLIC is true
-    const isOpenForPublic = process.env['OPEN_FOR_PUBLIC'] === 'true';
+    const isOpenForPublic = Bun.env['OPEN_FOR_PUBLIC'] === 'true';
     if (!isGroup && !isOpenForPublic) {
       if (!this.evolutionClient.isWhitelisted(senderJid)) {
         return { status: 'not_whitelisted' };

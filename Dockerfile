@@ -1,26 +1,22 @@
-# Base stage
-FROM node:22-alpine AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+# Base stage with bun
+FROM oven/bun:1-alpine AS base
+WORKDIR /app
 
 # Deps stage
 FROM base AS deps
-WORKDIR /app
-RUN apk add --no-cache --virtual .gyp python3 make g++
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile
 
 # Builder stage
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm run build
-RUN pnpm prune --prod --ignore-scripts
+RUN bun run build
+RUN bun install --production --frozen-lockfile
 
 # Runner stage
-FROM node:22-alpine AS runner
+FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 nodejs
@@ -42,4 +38,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV NODE_ENV=production
 
-CMD ["node", "/app/dist/index.js"]
+CMD ["bun", "run", "/app/dist/index.js"]
