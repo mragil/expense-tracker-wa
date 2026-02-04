@@ -21,6 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "@ai-sdk/google": "^1.1.9",
+    "@libsql/client": "^0.17.0",
     "ai": "^4.1.17",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.39.0",
