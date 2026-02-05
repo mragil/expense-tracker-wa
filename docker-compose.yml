@@ -6,7 +6,7 @@ services:
     container_name: expense-tracker-wa
     restart: always
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3000}:3001"
     volumes:
       - ./data:/app/data
     env_file:
