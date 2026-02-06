@@ -32,6 +32,6 @@ EXPOSE 3000
 ENV PORT=3000
 ENV NODE_ENV=production
 ENV DB_PATH=/app/data/sqlite.db
-
+ENV TZ=Asia/Jakarta
 
 CMD ["sh", "-c", "mkdir -p /app/data && bun run db:push && bun run /app/dist/index.js"]
