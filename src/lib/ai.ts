@@ -1,5 +1,3 @@
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
 import { 
   NAME_EXTRACTION_PROMPT, 
   BUDGET_EXTRACTION_PROMPT, 
@@ -7,14 +5,31 @@ import {
 } from './prompts';
 import type { UserIntentWithLang } from '@/types';
 
+const PROXY_URL = process.env['PROXY_URL'] || '';
+const PROXY_SECRET = process.env['PROXY_SECRET'] || '';
+
 export async function extractInformation(prompt: string, userMessage: string) {
-  const { text } = await generateText({
-    model: google('gemini-2.5-flash'),
-    system: prompt,
-    prompt: userMessage,
+  const response = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': PROXY_SECRET,
+    },
+    body: JSON.stringify({
+      model: 'gemini-2.5-flash-lite',
+      system: prompt,
+      prompt: userMessage,
+    }),
   });
 
-  return text.trim();
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Gemini proxy error:', error);
+    throw new Error(`Gemini proxy error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.text?.trim() || '';
 }
 
 /**
