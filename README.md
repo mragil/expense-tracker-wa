@@ -126,6 +126,8 @@ The app uses a modern, decoupled architecture:
 *   **Budget**:
     *   🇮🇩 "Set budget 5jt per bulan" / 🇺🇸 "Set monthly budget to $1000"
     *   🇮🇩 "Info budget" / 🇺🇸 "Budget status"
+      
+<img width="293" height="650" alt="expense-tracker-wa" src="https://github.com/user-attachments/assets/348527ec-7daa-4915-a0ac-c6d63000494e" />
 
 ---
 
