@@ -1,55 +1,58 @@
 import { transactions } from '@/db/schema';
 import { and, eq, gte, lte } from 'drizzle-orm';
+import {
+  startOfDay,
+  startOfWeek,
+  startOfMonth,
+  startOfLastMonth,
+  endOfLastMonth,
+  startOfYear,
+  parseLocalDate,
+  formatDateShort,
+  formatTimeShort,
+  formatDateLong,
+} from '@/lib/time';
 import type { I18nService } from '@/services/i18n.service';
 import type { Language, ReportData } from '@/types';
-import * as evolution from '@/lib/evolution';
-import { db as defaultDb } from '@/db/index';
+import type { WahaClient } from '@/lib/waha';
+import type { Db } from '@/db/index';
 
 export class ReportService {
   constructor(
-    private db: typeof defaultDb,
+    private db: Db,
     private i18n: I18nService,
-    private evolutionClient: typeof evolution
+    private evolutionClient: WahaClient
   ) {}
 
-  async generateSummary(remoteJid: string, reportData: Omit<ReportData, 'type'>, lang: Language = 'id') {
+  async generateSummary(remoteJid: string, reportData: Omit<ReportData, 'type'>, lang: Language = 'id', timezone?: string) {
     const t = this.i18n.getT(lang);
-    const now = new Date();
     const { period, startDate: customStart, endDate: customEnd } = reportData;
     let startDate = new Date();
     let endDate: Date | undefined = undefined;
 
     if (period === 'custom' && customStart) {
-      startDate = new Date(customStart);
-      startDate.setHours(0, 0, 0, 0);
+      startDate = parseLocalDate(customStart, timezone);
       if (customEnd) {
-        endDate = new Date(customEnd);
+        endDate = parseLocalDate(customEnd, timezone);
         endDate.setHours(23, 59, 59, 999);
       }
     } else {
       switch (period) {
         case 'today':
-          startDate.setHours(0, 0, 0, 0);
+          startDate = startOfDay(timezone);
           break;
         case 'week':
-          const day = now.getDay();
-          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-          startDate.setDate(diff);
-          startDate.setHours(0, 0, 0, 0);
+          startDate = startOfWeek(timezone);
           break;
         case 'month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          startDate.setHours(0, 0, 0, 0);
+          startDate = startOfMonth(timezone);
           break;
         case 'last_month':
-          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(now.getFullYear(), now.getMonth(), 0);
-          endDate.setHours(23, 59, 59, 999);
+          startDate = startOfLastMonth(timezone);
+          endDate = endOfLastMonth(timezone);
           break;
         case 'year':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          startDate.setHours(0, 0, 0, 0);
+          startDate = startOfYear(timezone);
           break;
         case 'all':
           startDate = new Date(0); // Beginning of time
@@ -103,8 +106,8 @@ export class ReportService {
             const tEmoji = trx.transactionType === 'income' ? '💰' : '💸';
             const amountStr = trx.amount.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US');
             const dateObj = trx.createdAt ? new Date(trx.createdAt) : null;
-            const timeStr = dateObj ? dateObj.toLocaleTimeString(lang === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-            const dateStr = dateObj ? dateObj.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '--/--/--';
+            const timeStr = dateObj ? formatTimeShort(dateObj, timezone, lang) : '--:--';
+            const dateStr = dateObj ? formatDateShort(dateObj, timezone, lang) : '--/--/--';
             const desc = trx.description ? `: ${trx.description}` : '';
             return `[${dateStr} ${timeStr}] ${tEmoji} ${amountStr} - ${trx.category}${desc}`;
           })
@@ -117,9 +120,9 @@ export class ReportService {
 
     let periodLabel = t.label(period || 'custom');
     if (period === 'custom' && customStart) {
-      const startStr = new Date(customStart).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+      const startStr = formatDateLong(parseLocalDate(customStart, timezone), timezone, lang);
       if (customEnd) {
-        const endStr = new Date(customEnd).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+        const endStr = formatDateLong(parseLocalDate(customEnd, timezone), timezone, lang);
         periodLabel = `${startStr} - ${endStr}`;
       } else {
         periodLabel = startStr;

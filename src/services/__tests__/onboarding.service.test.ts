@@ -42,9 +42,11 @@ describe('OnboardingService', () => {
     const user: User = { 
       whatsappNumber: 'user123', 
       onboardingStep: 'name', 
-      displayName: null, 
-      isActive: false, 
-      createdAt: new Date() 
+      displayName: null,
+      isActive: false,
+      timezone: null,
+      language: 'en',
+      createdAt: new Date()
     };
     await service.handleOnboarding('user123', 'My name is Ally', user, 'en');
 
@@ -60,9 +62,11 @@ describe('OnboardingService', () => {
     const user: User = { 
       whatsappNumber: 'user123', 
       displayName: 'Ally', 
-      onboardingStep: 'budget', 
-      isActive: false, 
-      createdAt: new Date() 
+      onboardingStep: 'budget',
+      isActive: false,
+      timezone: null,
+      language: 'en',
+      createdAt: new Date()
     };
     await service.handleOnboarding('user123', '1000000', user, 'en');
 
@@ -78,9 +82,11 @@ describe('OnboardingService', () => {
     const user: User = { 
       whatsappNumber: 'user123', 
       displayName: 'Ally', 
-      onboardingStep: 'budget', 
-      isActive: false, 
-      createdAt: new Date() 
+      onboardingStep: 'budget',
+      isActive: false,
+      timezone: null,
+      language: 'en',
+      createdAt: new Date()
     };
     await service.handleOnboarding('user123', 'skip', user, 'en');
 

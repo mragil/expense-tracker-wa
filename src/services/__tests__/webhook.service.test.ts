@@ -22,6 +22,9 @@ describe('WebhookService', () => {
       insert: mock(() => mockDb),
       values: mock(() => mockDb),
       onConflictDoUpdate: mock(() => Promise.resolve({})),
+      update: mock(() => mockDb),
+      set: mock(() => mockDb),
+      where: mock(() => Promise.resolve({})),
     };
     mockI18n = new I18nService();
     mockOnboarding = {
@@ -40,12 +43,17 @@ describe('WebhookService', () => {
     };
     mockEvolution = {
       isWhitelisted: mock(() => true),
+      resolvePhoneJid: mock((jid: string) => Promise.resolve(jid)),
       extractMessageText: mock(() => 'hello'),
       sendTextMessage: mock(() => Promise.resolve({})),
     };
     mockAi = {
       extractIntent: mock(() => Promise.resolve({ type: 'transaction', detectedLanguage: 'en' })),
     };
+    const mockEnv = {
+      OPEN_FOR_PUBLIC: 'false',
+      WAHA_WHITELISTED_NUMBERS: '',
+    } as any;
 
     service = new WebhookService(
       mockDb,
@@ -55,14 +63,15 @@ describe('WebhookService', () => {
       mockBudget,
       mockReport,
       mockEvolution,
-      mockAi
+      mockAi,
+      mockEnv
     );
   });
 
   it('should ignore self messages', async () => {
     const payload = {
-      event: 'messages.upsert' as const,
-      data: { key: { fromMe: true, remoteJid: '123' } }
+      event: 'message' as const,
+      payload: { fromMe: true, from: '123' }
     } as any;
 
     const result = await service.handleWebhook(payload);
@@ -71,8 +80,8 @@ describe('WebhookService', () => {
 
   it('should start onboarding if user not found', async () => {
     const payload = {
-      event: 'messages.upsert' as const,
-      data: { key: { fromMe: false, remoteJid: 'user123' } }
+      event: 'message' as const,
+      payload: { fromMe: false, from: 'user123' }
     } as any;
 
     mockDb.query.users.findFirst = mock(() => Promise.resolve(null));
@@ -85,8 +94,8 @@ describe('WebhookService', () => {
 
   it('should route to transaction service', async () => {
     const payload = {
-      event: 'messages.upsert' as const,
-      data: { key: { fromMe: false, remoteJid: 'user123' } }
+      event: 'message' as const,
+      payload: { fromMe: false, from: 'user123', body: 'hello' }
     } as any;
 
     mockDb.query.users.findFirst = mock(() => Promise.resolve({ onboardingStep: 'completed' }));
@@ -100,8 +109,8 @@ describe('WebhookService', () => {
 
   it('should route to report service', async () => {
     const payload = {
-      event: 'messages.upsert' as const,
-      data: { key: { fromMe: false, remoteJid: 'user123' } }
+      event: 'message' as const,
+      payload: { fromMe: false, from: 'user123', body: 'hello' }
     } as any;
 
     mockDb.query.users.findFirst = mock(() => Promise.resolve({ onboardingStep: 'completed' }));
@@ -110,6 +119,6 @@ describe('WebhookService', () => {
     const result = await service.handleWebhook(payload);
 
     expect(result.status).toBe('processed_report');
-    expect(mockReport.generateSummary).toHaveBeenCalledWith('user123', expect.objectContaining({ period: 'month' }), 'en');
+    expect(mockReport.generateSummary).toHaveBeenCalledWith('user123', expect.objectContaining({ period: 'month' }), 'en', expect.any(String));
   });
 });

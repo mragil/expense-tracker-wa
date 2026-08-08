@@ -35,5 +35,13 @@
   "label_last_month": "Bulan Lalu",
   "label_year": "Tahun Ini",
   "label_all": "Semua Transaksi",
-  "label_custom": "Periode Kustom"
+  "label_custom": "Periode Kustom",
+  "menu_button": "Menu",
+  "menu_section": "Pilihan",
+  "menu_report_today": "📊 Laporan Hari Ini",
+  "menu_report_week": "📅 Laporan Minggu Ini",
+  "menu_report_month": "🗓️ Laporan Bulan Ini",
+  "menu_budget": "💰 Cek Budget",
+  "menu_logging": "📝 Cara Catat Transaksi",
+  "menu_timezone": "🌍 Ubah Zona Waktu"
 }

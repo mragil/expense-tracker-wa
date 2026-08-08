@@ -2,25 +2,81 @@ import { users } from '@/db/schema';
 
 export type Language = 'id' | 'en';
 
-export interface EvolutionWebhookPayload {
+export interface WahaWebhookEnvelope {
+  id: string;
+  timestamp: number;
   event: string;
-  instance: string;
-  data: {
-    key: {
-      remoteJid: string;
-      fromMe: boolean;
-      id: string;
-      participant?: string;
-    };
-    message?: {
-      conversation?: string;
-      extendedTextMessage?: {
-        text: string;
-      };
-    };
-    pushName?: string;
-    author?: string;
+  session: string;
+  me?: { id: string; pushName: string };
+  payload: WahaMessagePayload | WahaGroupJoinPayload | WahaGroupLeavePayload | WahaGroupParticipantsPayload | WahaPollVotePayload | unknown;
+  environment?: {
+    tier: string;
+    version: string;
   };
+  engine: string;
+}
+
+export interface WahaMessagePayload {
+  id: string;
+  timestamp: number;
+  from: string;
+  fromMe: boolean;
+  source?: string;
+  to: string;
+  body?: string;
+  hasMedia?: boolean;
+  participant?: string;
+  pushName?: string;
+  _data?: unknown;
+}
+
+export interface WahaGroupJoinPayload {
+  group: {
+    id: string;
+    subject?: string;
+    participants?: Array<{ id: string; role: string }>;
+  };
+  timestamp?: number;
+  _data?: unknown;
+}
+
+export interface WahaGroupLeavePayload {
+  group: {
+    id: string;
+  };
+  timestamp?: number;
+  _data?: unknown;
+}
+
+export interface WahaGroupParticipantsPayload {
+  type: 'join' | 'leave' | 'promote' | 'demote';
+  timestamp: number;
+  group: {
+    id: string;
+  };
+  participants: Array<{
+    id: string;
+    role: string;
+  }>;
+  _data?: unknown;
+}
+
+export interface WahaPollVotePayload {
+  vote: {
+    id: string;
+    to: string;
+    from: string;
+    fromMe: boolean;
+    selectedOptions: string[];
+    timestamp?: number;
+  };
+  poll: {
+    id: string;
+    to: string;
+    from: string;
+    fromMe: boolean;
+  };
+  _data?: unknown;
 }
 
 export interface TransactionData {
@@ -53,42 +109,26 @@ export interface LanguageChangeData {
   language: Language;
 }
 
-export type UserIntent = 
-  | TransactionData 
-  | ReportData 
-  | BudgetInquiryData 
-  | BudgetUpdateData 
+export type UserIntent =
+  | TransactionData
+  | ReportData
+  | BudgetInquiryData
+  | BudgetUpdateData
   | { error: string };
 
 export type UserIntentWithLang = (UserIntent & { detectedLanguage: Language }) | { error: string, detectedLanguage: Language };
 
 export type User = typeof users.$inferSelect;
 
-export interface EvolutionGroupUpsertPayload {
-  event: 'groups.upsert';
-  instance: string;
-  data: Array<{
-    id: string;
-    subject: string;
-    author?: string;
-    authorPn?: string;
-    [key: string]: any;
-  }>;
-}
-
-export interface EvolutionGroupUpdatePayload {
-  event: 'group-participants.update';
-  instance: string;
-  sender: string;
-  data: {
-    id: string;
-    action: 'add' | 'remove' | 'leave' | 'promote' | 'demote';
-    author: string;
-    participants: Array<{
-      phoneNumber: string;
-      [key: string]: any;
-    }>;
-  };
+export interface Env {
+  DB: D1Database;
+  AI: Ai;
+  GOOGLE_GENERATIVE_AI_API_KEY?: string;
+  WAHA_API_URL: string;
+  WAHA_API_KEY: string;
+  WAHA_INSTANCE: string;
+  WAHA_WHITELISTED_NUMBERS?: string;
+  OPEN_FOR_PUBLIC?: string;
 }
 
 export interface Services {
@@ -101,6 +141,7 @@ export interface Services {
 }
 
 export interface AppEnv {
+  Bindings: Env;
   Variables: {
     services: Services;
   };

@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "expense-tracker-wa",
+  "account_id": "10b5d1eab096e8081ca87180913b0383",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "expense-tracker-wa-db",
+      "database_id": "f909f2c6-fbdf-4eeb-9429-66b9f7ada665"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "vars": {
+    "WAHA_API_URL": "http://waha.expense-tracker.mrtrr.web.id:3000",
+    "WAHA_INSTANCE": "expense-bot",
+    "OPEN_FOR_PUBLIC": "false",
+    "WAHA_WHITELISTED_NUMBERS": "6281275973221@c.us"
+  }
+}

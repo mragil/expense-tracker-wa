@@ -1,68 +1,73 @@
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
 import { 
   NAME_EXTRACTION_PROMPT, 
   BUDGET_EXTRACTION_PROMPT, 
   INTENT_EXTRACTION_PROMPT 
 } from './prompts';
+import { getDateContext, DEFAULT_TIMEZONE } from './time';
 import type { UserIntentWithLang } from '@/types';
 
-export async function extractInformation(prompt: string, userMessage: string) {
-  const { text } = await generateText({
-    model: google('gemini-2.5-flash'),
-    system: prompt,
-    prompt: userMessage,
-  });
+const CHAT_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
-  return text.trim();
-}
+export function createAi(ai: Ai) {
+  async function extractInformation(prompt: string, userMessage: string) {
+    const result = await ai.run(CHAT_MODEL, {
+      messages: [
+        { role: 'system', content: prompt },
+        { role: 'user', content: userMessage },
+      ],
+    });
 
-/**
- * Clean AI response to extract pure JSON
- */
-function cleanJson(result: string): string {
-  return result
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
-}
-
-export async function extractName(userMessage: string): Promise<string> {
-  return await extractInformation(NAME_EXTRACTION_PROMPT, userMessage);
-}
-
-export async function extractBudget(userMessage: string): Promise<{ amount: number; period: string } | null> {
-  const result = await extractInformation(BUDGET_EXTRACTION_PROMPT, userMessage);
-  try {
-    const parsed = JSON.parse(cleanJson(result));
-    if (parsed.error) return null;
-    return parsed;
-  } catch (e) {
-    console.error('Failed to parse budget JSON:', result);
-    return null;
+    const content = (result as any)?.choices?.[0]?.message?.content as string | undefined;
+    const text = content ?? '';
+    return text.trim();
   }
-}
 
-export async function extractIntent(userMessage: string): Promise<UserIntentWithLang> {
-  const dateContext = `Current date: ${new Date().toISOString().split('T')[0]}\n`;
-  const result = await extractInformation(dateContext + INTENT_EXTRACTION_PROMPT, userMessage);
-  try {
-    const cleanedResult = cleanJson(result);
-    const parsed = JSON.parse(cleanedResult);
-    
-    // Fallback for missing period in report intents
-    if (parsed.type === 'report' && !parsed.period) {
-      parsed.period = 'today';
-    }
-
-    // Ensure detectedLanguage exists
-    if (!parsed.detectedLanguage) {
-      parsed.detectedLanguage = 'id';
-    }
-
-    return parsed;
-  } catch (e) {
-    console.error('Failed to parse intent JSON:', result);
-    return { error: 'parse_error', detectedLanguage: 'id' };
+  function cleanJson(result: string): string {
+    return result
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
   }
+
+  async function extractName(userMessage: string): Promise<string> {
+    return await extractInformation(NAME_EXTRACTION_PROMPT, userMessage);
+  }
+
+  async function extractBudget(userMessage: string): Promise<{ amount: number; period: string } | null> {
+    const result = await extractInformation(BUDGET_EXTRACTION_PROMPT, userMessage);
+    try {
+      const parsed = JSON.parse(cleanJson(result));
+      if (parsed.error) return null;
+      return parsed;
+    } catch (e) {
+      console.error('Failed to parse budget JSON:', result);
+      return null;
+    }
+  }
+
+  async function extractIntent(userMessage: string, timezone?: string): Promise<UserIntentWithLang> {
+    const dateContext = getDateContext(timezone || DEFAULT_TIMEZONE) + '\n';
+    const result = await extractInformation(dateContext + INTENT_EXTRACTION_PROMPT, userMessage);
+    try {
+      const cleanedResult = cleanJson(result);
+      const parsed = JSON.parse(cleanedResult);
+
+      if (parsed.type === 'report' && !parsed.period) {
+        parsed.period = 'today';
+      }
+
+      if (!parsed.detectedLanguage) {
+        parsed.detectedLanguage = 'id';
+      }
+
+      return parsed;
+    } catch (e) {
+      console.error('Failed to parse intent JSON:', result);
+      return { error: 'parse_error', detectedLanguage: 'id' };
+    }
+  }
+
+  return { extractName, extractBudget, extractIntent };
 }
+
+export type AiClient = ReturnType<typeof createAi>;

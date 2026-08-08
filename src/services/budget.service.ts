@@ -1,18 +1,19 @@
 import { budgets, transactions } from '@/db/schema';
 import { and, eq, gte, desc } from 'drizzle-orm';
+import { startOfMonth } from '@/lib/time';
 import type { I18nService } from '@/services/i18n.service';
 import type { Language } from '@/types';
-import * as evolution from '@/lib/evolution';
-import { db as defaultDb } from '@/db/index';
+import type { WahaClient } from '@/lib/waha';
+import type { Db } from '@/db/index';
 
 export class BudgetService {
   constructor(
-    private db: typeof defaultDb,
+    private db: Db,
     private i18n: I18nService,
-    private evolutionClient: typeof evolution
+    private evolutionClient: WahaClient
   ) {}
 
-  async checkBudget(remoteJid: string, lang: Language = 'id') {
+  async checkBudget(remoteJid: string, lang: Language = 'id', timezone?: string) {
     const t = this.i18n.getT(lang);
     const userBudget = await this.db.query.budgets.findFirst({
       where: eq(budgets.whatsappNumber, remoteJid),
@@ -24,13 +25,12 @@ export class BudgetService {
       return;
     }
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfMonthDate = startOfMonth(timezone);
 
     const monthTransactions = await this.db.select().from(transactions).where(
       and(
         eq(transactions.whatsappId, remoteJid),
-        gte(transactions.createdAt, startOfMonth),
+        gte(transactions.createdAt, startOfMonthDate),
         eq(transactions.transactionType, 'expense')
       )
     );

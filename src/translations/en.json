@@ -35,5 +35,13 @@
   "label_last_month": "Last Month",
   "label_year": "This Year",
   "label_all": "All Transactions",
-  "label_custom": "Custom Period"
+  "label_custom": "Custom Period",
+  "menu_button": "Menu",
+  "menu_section": "Options",
+  "menu_report_today": "📊 Today's Report",
+  "menu_report_week": "📅 This Week's Report",
+  "menu_report_month": "🗓️ This Month's Report",
+  "menu_budget": "💰 Check Budget",
+  "menu_logging": "📝 How to Log",
+  "menu_timezone": "🌍 Change Timezone"
 }

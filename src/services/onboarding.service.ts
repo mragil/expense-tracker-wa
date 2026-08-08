@@ -2,16 +2,16 @@ import { users, budgets } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import type { Language, User } from '@/types';
 import type { I18nService } from '@/services/i18n.service';
-import type * as evolution from '@/lib/evolution';
-import type * as ai from '@/lib/ai';
-import { db as defaultDb } from '@/db/index';
+import type { WahaClient } from '@/lib/waha';
+import type { AiClient } from '@/lib/ai';
+import type { Db } from '@/db/index';
 
 export class OnboardingService {
   constructor(
-    private db: typeof defaultDb,
+    private db: Db,
     private i18n: I18nService,
-    private evolutionClient: typeof evolution,
-    private aiClient: typeof ai
+    private evolutionClient: WahaClient,
+    private aiClient: AiClient
   ) {}
 
   private async handleNameStep(remoteJid: string, messageText: string, _user: User, lang: Language) {
@@ -59,10 +59,12 @@ export class OnboardingService {
     }
   }
 
-  async startOnboarding(remoteJid: string, lang: Language) {
+  async startOnboarding(remoteJid: string, lang: Language, timezone?: string) {
     await this.db.insert(users).values({
       whatsappNumber: remoteJid,
       onboardingStep: 'name',
+      timezone,
+      language: lang,
     }).onConflictDoUpdate({
       target: users.whatsappNumber,
       set: { onboardingStep: 'name' }

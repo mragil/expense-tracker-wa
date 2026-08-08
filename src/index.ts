@@ -2,14 +2,14 @@ import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { createContainer } from '@/services/container';
 import { factory } from '@/services/factory';
-import type { AppEnv, EvolutionWebhookPayload } from '@/types';
+import type { AppEnv, WahaWebhookEnvelope } from '@/types';
 
 const app = new Hono<AppEnv>();
-const container = createContainer();
 
 app.use('*', logger());
 
 app.use('*', async (c, next) => {
+  const container = createContainer(c.env);
   c.set('services', container);
   await next();
 });
@@ -22,7 +22,7 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
-app.post('/webhook/messages-upsert', ...factory.createHandlers(async (c) => {
+app.post('/webhook', ...factory.createHandlers(async (c) => {
   const services = c.var.services;
   try {
     const rawBody = await c.req.text();
@@ -30,8 +30,8 @@ app.post('/webhook/messages-upsert', ...factory.createHandlers(async (c) => {
       console.warn('Received empty webhook body');
       return c.json({ status: 'ignored', reason: 'empty_body' });
     }
-    
-    const body = JSON.parse(rawBody) as EvolutionWebhookPayload;
+
+    const body = JSON.parse(rawBody) as WahaWebhookEnvelope;
     const result = await services.webhook.handleWebhook(body);
     return c.json(result);
   } catch (error) {
@@ -40,34 +40,6 @@ app.post('/webhook/messages-upsert', ...factory.createHandlers(async (c) => {
   }
 }));
 
-app.post('/webhook/group-participants-update', ...factory.createHandlers(async (c) => {
-  const services = c.var.services;
-  try {
-    const body = await c.req.json();
-    const result = await services.webhook.handleGroupUpdate(body);
-    return c.json(result);
-  } catch (error) {
-    console.error('Group update error:', error);
-    return c.json({ status: 'error', message: 'Internal server error' }, 500);
-  }
-}));
-
-app.post('/webhook/groups-upsert', ...factory.createHandlers(async (c) => {
-  const services = c.var.services;
-  try {
-    const body = await c.req.json();
-    const result = await services.webhook.handleGroupUpsert(body);
-    return c.json(result);
-  } catch (error) {
-    console.error('Group upsert error:', error);
-    return c.json({ status: 'error', message: 'Internal server error' }, 500);
-  }
-}));
-
-const port = Number(Bun.env['PORT']) || 3000;
-console.log(`Main service is running on port ${port}`);
-
 export default {
-  port,
   fetch: app.fetch,
 };

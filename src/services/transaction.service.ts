@@ -1,14 +1,14 @@
 import { transactions } from '@/db/schema';
 import type { TransactionData, Language } from '@/types';
 import type { I18nService } from '@/services/i18n.service';
-import * as evolution from '@/lib/evolution';
-import { db as defaultDb } from '@/db/index';
+import type { WahaClient } from '@/lib/waha';
+import type { Db } from '@/db/index';
 
 export class TransactionService {
   constructor(
-    private db: typeof defaultDb,
+    private db: Db,
     private i18n: I18nService,
-    private evolutionClient: typeof evolution
+    private evolutionClient: WahaClient
   ) {}
 
   async handleTransaction(remoteJid: string, data: TransactionData, loggedBy?: string, lang: Language = 'id') {

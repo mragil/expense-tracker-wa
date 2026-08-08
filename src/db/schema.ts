@@ -5,6 +5,8 @@ export const users = sqliteTable('users', {
   displayName: text('display_name'),
   onboardingStep: text('onboarding_step').default('language'),
   isActive: integer('is_active', { mode: 'boolean' }).default(false),
+  timezone: text('timezone'),
+  language: text('language').default('id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
