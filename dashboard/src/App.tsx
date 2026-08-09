@@ -15,7 +15,13 @@ export default function App() {
 function AppInner() {
   const [session, setSession] = useState<MeResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const { t } = useI18n();
+  const { t, setLang } = useI18n();
+
+  useEffect(() => {
+    if (session) {
+      setLang(session.language === 'id' ? 'id' : 'en');
+    }
+  }, [session, setLang]);
 
   useEffect(() => {
     const token = localStorage.getItem('expense_token');

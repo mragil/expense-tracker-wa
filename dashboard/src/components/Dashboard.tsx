@@ -33,12 +33,24 @@ function fmt(n: number, lang: Language): string {
   return n.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US');
 }
 
-function fmtCurrency(n: number): string {
+function currencySymbol(lang: Language): string {
+  return lang === 'id' ? 'Rp' : 'IDR';
+}
+
+function fmtMoney(n: number, lang: Language): string {
+  return `${currencySymbol(lang)} ${fmt(n, lang)}`;
+}
+
+function fmtCurrency(n: number, lang: Language): string {
+  const sym = currencySymbol(lang);
   const abs = Math.abs(n);
-  if (abs >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
+  let compact: string;
+  if (abs >= 1_000_000_000) compact = `${(n / 1_000_000_000).toFixed(1)}B`;
+  else if (abs >= 1_000_000) compact = `${(n / 1_000_000).toFixed(1)}M`;
+  else if (abs >= 1_000) compact = `${(n / 1_000).toFixed(1)}K`;
+  else compact = String(n);
+  compact = compact.replace(/\.0(?=[KMB]$)/, '');
+  return `${sym} ${compact}`;
 }
 
 function fmtDateTime(ts: number | null, lang: Language): string {
@@ -206,21 +218,21 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <StatCard
                 label={t('income')}
-                value={`+${fmtCurrency(summary?.totalIncome ?? 0)}`}
+                value={`+${fmtCurrency(summary?.totalIncome ?? 0, lang)}`}
                 color="#16a34a"
                 icon="income"
-                detail={`${fmt(summary?.totalIncome ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
+                detail={`${fmtMoney(summary?.totalIncome ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
               />
               <StatCard
                 label={t('expense')}
-                value={`−${fmtCurrency(summary?.totalExpense ?? 0)}`}
+                value={`−${fmtCurrency(summary?.totalExpense ?? 0, lang)}`}
                 color="#dc2626"
                 icon="expense"
-                detail={`${fmt(summary?.totalExpense ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
+                detail={`${fmtMoney(summary?.totalExpense ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
               />
               <StatCard
                 label={t('balance')}
-                value={fmtCurrency(summary?.balance ?? 0)}
+                value={fmtCurrency(summary?.balance ?? 0, lang)}
                 color={(summary?.balance ?? 0) >= 0 ? '#111110' : '#dc2626'}
                 icon="balance"
                 detail={t('balanceDetail')}
@@ -232,7 +244,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="font-semibold">{t('monthlyBudget')}</h2>
                   <span className="text-sm text-gray-500">
-                    {t('spentOf', { spent: fmtCurrency(budget.spent), amount: fmtCurrency(budget.amount) })}
+                    {t('spentOf', { spent: fmtCurrency(budget.spent, lang), amount: fmtCurrency(budget.amount, lang) })}
                   </span>
                 </div>
                 <div className="budget-bar">
@@ -252,8 +264,8 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                   {t('percentUsed', { pct: budget.percentUsed.toFixed(1) })} ·{' '}
                   <span style={{ fontWeight: 500, color: budget.remaining >= 0 ? '#16a34a' : '#dc2626' }}>
                     {budget.remaining >= 0
-                      ? t('remaining', { amount: fmtCurrency(budget.remaining) })
-                      : t('overBudget', { amount: fmtCurrency(-budget.remaining) })}
+                      ? t('remaining', { amount: fmtCurrency(budget.remaining, lang) })
+                      : t('overBudget', { amount: fmtCurrency(-budget.remaining, lang) })}
                   </span>
                 </p>
               </div>
@@ -277,7 +289,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                           <div className="flex justify-between text-sm mb-1">
                             <span className="text-gray-700">{cat}</span>
                             <span className="text-gray-500 font-medium">
-                              {fmtCurrency(total)} · {pct.toFixed(0)}%
+                              {fmtCurrency(total, lang)} · {pct.toFixed(0)}%
                             </span>
                           </div>
                           <div className="cat-bar">
@@ -323,7 +335,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                             className="txn-amount"
                             style={{ color: trx.transactionType === 'income' ? '#16a34a' : '#dc2626' }}
                           >
-                            {trx.transactionType === 'income' ? '+' : '−'}{fmt(trx.amount, lang)}
+                            {trx.transactionType === 'income' ? '+' : '−'}{fmtMoney(trx.amount, lang)}
                           </span>
                           <button
                             onClick={() => setEditing(trx)}
@@ -366,7 +378,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
             <p className="text-sm text-gray-500 mb-4">
               {t('deleteConfirm', {
                 category: confirming.category ?? (confirming.transactionType === 'income' ? t('income') : t('expense')),
-                amount: fmt(confirming.amount, lang),
+                amount: fmtMoney(confirming.amount, lang),
               })}
             </p>
             <div className="flex gap-3 justify-end">
