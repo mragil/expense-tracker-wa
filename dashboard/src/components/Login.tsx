@@ -40,14 +40,14 @@ export default function Login({ onLogin }: LoginProps) {
     }
   };
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitVerify = async (phoneVal: string, codeVal: string) => {
+    if (loading) return;
     setError('');
     setLoading(true);
     try {
       const res = await api<VerifyResponse>('/auth/verify', {
         method: 'POST',
-        body: { phone, code },
+        body: { phone: phoneVal, code: codeVal },
       });
       if (!res.ok || !res.user) {
         const msg = res.error === 'invalid' || res.error === 'used'
@@ -66,6 +66,11 @@ export default function Login({ onLogin }: LoginProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitVerify(phone, code);
   };
 
   return (
@@ -111,10 +116,17 @@ export default function Login({ onLogin }: LoginProps) {
             <input
               type="text"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setCode(value);
+                if (value.length === 6) {
+                  submitVerify(phone, value);
+                }
+              }}
               placeholder="000000"
               inputMode="numeric"
               maxLength={6}
+              autoComplete="one-time-code"
               className="input"
               style={{ textAlign: 'center', fontSize: 20, letterSpacing: 8 }}
               required
