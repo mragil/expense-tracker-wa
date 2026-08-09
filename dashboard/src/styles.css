@@ -220,9 +220,41 @@ a:focus-visible {
   max-width: 64rem;
   margin: 0 auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px 16px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.nav-link:hover {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.nav-link.active {
+  background: var(--surface-muted);
+  color: var(--text);
 }
 
 .logo {
@@ -429,6 +461,22 @@ a:focus-visible {
 .row-action:hover {
   color: var(--text);
   background: rgba(17, 17, 16, 0.06);
+}
+
+.view-all {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.view-all:hover {
+  color: var(--text);
 }
 
 /* ============ Modals ============ */
