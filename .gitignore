@@ -8,3 +8,6 @@ PRD.md
 AGENTS.md
 ngrok.json
 build
+.wrangler
+dashboard/dist
+dashboard/node_modules

@@ -123,6 +123,7 @@ export type User = typeof users.$inferSelect;
 export interface Env {
   DB: D1Database;
   AI: Ai;
+  ASSETS?: Fetcher;
   GOOGLE_GENERATIVE_AI_API_KEY?: string;
   WAHA_API_URL: string;
   WAHA_API_KEY: string;
@@ -136,6 +137,7 @@ export interface Services {
   transaction: any;
   budget: any;
   report: any;
+  dashboard: any;
   webhook: any;
   i18n: any;
 }
@@ -144,5 +146,8 @@ export interface AppEnv {
   Bindings: Env;
   Variables: {
     services: Services;
+    session?: {
+      whatsappNumber: string;
+    };
   };
 }

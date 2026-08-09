@@ -7,6 +7,7 @@ import { TransactionService } from '@/services/transaction.service';
 import { BudgetService } from '@/services/budget.service';
 import { ReportService } from '@/services/report.service';
 import { WebhookService } from '@/services/webhook.service';
+import { DashboardService } from '@/services/dashboard.service';
 import type { Env, Services } from '@/types';
 
 export function createContainer(env: Env): Services {
@@ -24,6 +25,7 @@ export function createContainer(env: Env): Services {
   const transaction = new TransactionService(db, i18n, evolution);
   const budget = new BudgetService(db, i18n, evolution);
   const report = new ReportService(db, i18n, evolution);
+  const dashboard = new DashboardService(db, evolution);
   const webhook = new WebhookService(
     db,
     i18n,
@@ -42,6 +44,7 @@ export function createContainer(env: Env): Services {
     transaction,
     budget,
     report,
+    dashboard,
     webhook,
   };
 }

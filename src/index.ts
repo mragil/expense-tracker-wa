@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { createContainer } from '@/services/container';
 import { factory } from '@/services/factory';
+import api from '@/web/routes';
 import type { AppEnv, WahaWebhookEnvelope } from '@/types';
 
 const app = new Hono<AppEnv>();
@@ -22,6 +23,8 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
+app.route('/api', api);
+
 app.post('/webhook', ...factory.createHandlers(async (c) => {
   const services = c.var.services;
   try {
@@ -39,6 +42,17 @@ app.post('/webhook', ...factory.createHandlers(async (c) => {
     return c.json({ status: 'error', message: 'Internal server error' }, 500);
   }
 }));
+
+app.notFound(async (c) => {
+  const url = new URL(c.req.url);
+  if (url.pathname.startsWith('/api/')) {
+    return c.json({ error: 'Not found' }, 404);
+  }
+  if (c.env.ASSETS) {
+    return c.env.ASSETS.fetch(c.req.raw);
+  }
+  return c.text('Not found', 404);
+});
 
 export default {
   fetch: app.fetch,
