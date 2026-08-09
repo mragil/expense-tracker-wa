@@ -148,7 +148,7 @@ export class WebhookService {
     }
 
     if (intent.type === 'transaction') {
-      await this.transaction.handleTransaction(remoteJid, intent, senderJid, lang);
+      await this.transaction.handleTransaction(remoteJid, intent, senderJid, lang, payload.pushName);
       return { status: 'processed_transaction' };
     }
 

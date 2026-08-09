@@ -4,17 +4,28 @@ import {
   updateTransaction,
   deleteTransaction,
   UnauthorizedError,
+  scopeQuery,
   type MeResponse,
   type TransactionsResponse,
   type Transaction,
+  type Group,
+  type Scope,
 } from '../lib/api';
 import { useI18n } from '../lib/i18n';
-import { fmtMoney, fmtDateTime } from '../lib/format';
+import { fmtMoney, fmtDateTime, fmtPhone } from '../lib/format';
 import { PERIODS } from '../lib/periods';
 import Icon from './Icon';
 import EditModal from './EditModal';
+import ScopeSelector from './ScopeSelector';
 
-export default function Transactions({ session }: { session: MeResponse }) {
+interface TransactionsProps {
+  session: MeResponse;
+  scope: Scope;
+  onScopeChange: (scope: Scope) => void;
+  groups: Group[];
+}
+
+export default function Transactions({ session, scope, onScopeChange, groups }: TransactionsProps) {
   const { t, lang } = useI18n();
   const [period, setPeriod] = useState('month');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -28,8 +39,9 @@ export default function Transactions({ session }: { session: MeResponse }) {
   const load = useCallback(() => {
     setLoading(true);
     setError('');
+    const qs = scopeQuery(scope);
     return api<TransactionsResponse>(
-      `/dashboard/transactions?period=${period}&limit=500&timezone=${encodeURIComponent(tz)}`,
+      `/dashboard/transactions?period=${period}&limit=500&timezone=${encodeURIComponent(tz)}&${qs}`,
     )
       .then((res) => setTransactions(res.transactions))
       .catch((err) => {
@@ -40,7 +52,7 @@ export default function Transactions({ session }: { session: MeResponse }) {
         setError(err instanceof Error ? err.message : t('errFailedToLoad'));
       })
       .finally(() => setLoading(false));
-  }, [period, tz, t]);
+  }, [period, tz, t, scope]);
 
   useEffect(() => {
     load();
@@ -74,16 +86,19 @@ export default function Transactions({ session }: { session: MeResponse }) {
     <div>
       <div className="flex items-center justify-between gap-4 mb-6" style={{ flexWrap: 'wrap' }}>
         <h1 className="text-xl font-bold">{t('manageTransactions')}</h1>
-        <div className="period-tabs">
-          {PERIODS.map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setPeriod(p.key)}
-              className={period === p.key ? 'active' : ''}
-            >
-              {t(p.tKey)}
-            </button>
-          ))}
+        <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
+          <ScopeSelector groups={groups} scope={scope} onScopeChange={onScopeChange} />
+          <div className="period-tabs">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                className={period === p.key ? 'active' : ''}
+              >
+                {t(p.tKey)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -109,46 +124,51 @@ export default function Transactions({ session }: { session: MeResponse }) {
         </div>
       ) : (
         <div className="card">
-          {transactions.map((trx) => (
-            <div key={trx.id} className="txn-row">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="txn-avatar">
-                  <Icon name={trx.transactionType === 'income' ? 'arrowUp' : 'arrowDown'} size={15} />
-                </span>
-                <div className="min-w-0" style={{ flex: 1 }}>
-                  <p className="text-sm font-medium text-gray-800 truncate">
-                    {trx.category ?? (trx.transactionType === 'income' ? t('income') : t('expense'))}
-                  </p>
-                  <p className="text-xs text-gray-400 truncate">
-                    {[trx.description, fmtDateTime(trx.createdAt, lang)].filter(Boolean).join(' · ')}
-                  </p>
+          {transactions.map((trx) => {
+            const logged = scope.scope === 'group' && trx.loggedBy
+              ? `${t('byLabel')} ${fmtPhone(trx.loggedBy)}${trx.loggedByName ? ` (${trx.loggedByName})` : ''}`
+              : '';
+            return (
+              <div key={trx.id} className="txn-row">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="txn-avatar">
+                    <Icon name={trx.transactionType === 'income' ? 'arrowUp' : 'arrowDown'} size={15} />
+                  </span>
+                  <div className="min-w-0" style={{ flex: 1 }}>
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {trx.category ?? (trx.transactionType === 'income' ? t('income') : t('expense'))}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {[logged, trx.description, fmtDateTime(trx.createdAt, lang)].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span
+                    className="txn-amount"
+                    style={{ color: trx.transactionType === 'income' ? '#16a34a' : '#dc2626' }}
+                  >
+                    {trx.transactionType === 'income' ? '+' : '−'}{fmtMoney(trx.amount, lang)}
+                  </span>
+                  <button
+                    onClick={() => setEditing(trx)}
+                    title={t('edit')}
+                    className="row-action"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    onClick={() => setConfirming(trx)}
+                    title={t('delete')}
+                    className="row-action"
+                    style={{ color: '#dc2626' }}
+                  >
+                    🗑
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span
-                  className="txn-amount"
-                  style={{ color: trx.transactionType === 'income' ? '#16a34a' : '#dc2626' }}
-                >
-                  {trx.transactionType === 'income' ? '+' : '−'}{fmtMoney(trx.amount, lang)}
-                </span>
-                <button
-                  onClick={() => setEditing(trx)}
-                  title={t('edit')}
-                  className="row-action"
-                >
-                  ✎
-                </button>
-                <button
-                  onClick={() => setConfirming(trx)}
-                  title={t('delete')}
-                  className="row-action"
-                  style={{ color: '#dc2626' }}
-                >
-                  🗑
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -330,7 +330,24 @@ a:focus-visible {
 .period-tabs button.active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
+}
+
+.scope-select {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.scope-select:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
 }
 
 .period-tabs button:not(.active):hover {

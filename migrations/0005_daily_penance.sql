@@ -1,0 +1,1 @@
+ALTER TABLE `transactions` ADD `logged_by_name` text;

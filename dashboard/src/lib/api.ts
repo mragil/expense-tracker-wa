@@ -78,7 +78,31 @@ export interface Transaction {
   transactionType: 'income' | 'expense';
   category: string | null;
   description: string | null;
+  loggedBy?: string | null;
+  loggedByName?: string | null;
   createdAt: number | null;
+}
+
+export interface Group {
+  jid: string;
+  name: string;
+}
+
+export interface GroupsResponse {
+  groups: Group[];
+}
+
+export type Scope = { scope: 'personal' } | { scope: 'group'; group: Group };
+
+export function scopeQuery(scope: Scope): string {
+  if (scope.scope === 'group') {
+    return `scope=group&groupId=${encodeURIComponent(scope.group.jid)}`;
+  }
+  return 'scope=personal';
+}
+
+export function getGroups(): Promise<GroupsResponse> {
+  return api<GroupsResponse>('/dashboard/groups');
 }
 
 export interface TransactionsResponse {

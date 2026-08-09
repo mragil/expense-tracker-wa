@@ -33,3 +33,13 @@ export function fmtDateTime(ts: number | null, lang: Language): string {
     minute: '2-digit',
   });
 }
+
+export function fmtPhone(jid: string | null | undefined): string {
+  if (!jid) return '';
+  const digits = jid.replace(/@.*$/, '').replace(/\D/g, '');
+  let local = digits.startsWith('62') ? '0' + digits.slice(2) : digits;
+  if (local.length === 12) local = `${local.slice(0, 4)}-${local.slice(4, 8)}-${local.slice(8)}`;
+  else if (local.length === 11) local = `${local.slice(0, 4)}-${local.slice(4, 7)}-${local.slice(7)}`;
+  else if (local.length === 10) local = `${local.slice(0, 3)}-${local.slice(3, 6)}-${local.slice(6)}`;
+  return local;
+}

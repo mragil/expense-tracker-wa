@@ -19,6 +19,7 @@ export const transactions = sqliteTable('transactions', {
   category: text('category'),
   description: text('description'),
   loggedBy: text('logged_by'),
+  loggedByName: text('logged_by_name'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 

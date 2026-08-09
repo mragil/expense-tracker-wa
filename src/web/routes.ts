@@ -125,38 +125,63 @@ api.use('/dashboard/*', async (c, next) => {
   return undefined;
 });
 
-api.get('/dashboard/summary', async (c) => {
+async function resolveLedger(c: Context<AppEnv>): Promise<string | null> {
   const services = c.var.services;
   const session = c.get('session')!;
+  const scope = (c.req.query('scope') || 'personal').trim();
+  if (scope === 'personal') return session.whatsappNumber;
+  if (scope === 'group') {
+    const groupId = (c.req.query('groupId') ?? '').trim();
+    if (!groupId) return null;
+    const group = await services.dashboard.getGroupForOwner(session.whatsappNumber, groupId);
+    return group ? group.jid : null;
+  }
+  return null;
+}
+
+api.get('/dashboard/groups', async (c) => {
+  const services = c.var.services;
+  const session = c.get('session')!;
+  const groups = await services.dashboard.getGroups(session.whatsappNumber);
+  return c.json({ groups });
+});
+
+api.get('/dashboard/summary', async (c) => {
+  const services = c.var.services;
+  const ledger = await resolveLedger(c);
+  if (!ledger) return c.json({ error: 'forbidden' }, 403);
   const period = (c.req.query('period') || 'month').trim();
-  const timezone = c.req.query('timezone') || inferTimezoneFromPhone(session.whatsappNumber);
-  const data = await services.dashboard.getSummary(session.whatsappNumber, period, timezone);
+  const timezone = c.req.query('timezone') || inferTimezoneFromPhone(ledger);
+  const data = await services.dashboard.getSummary(ledger, period, timezone);
   return c.json(data);
 });
 
 api.get('/dashboard/transactions', async (c) => {
   const services = c.var.services;
-  const session = c.get('session')!;
+  const ledger = await resolveLedger(c);
+  if (!ledger) return c.json({ error: 'forbidden' }, 403);
   const period = (c.req.query('period') || 'month').trim();
-  const timezone = c.req.query('timezone') || inferTimezoneFromPhone(session.whatsappNumber);
+  const timezone = c.req.query('timezone') || inferTimezoneFromPhone(ledger);
   const limit = Number(c.req.query('limit') || 100);
-  const data = await services.dashboard.getTransactions(session.whatsappNumber, period, timezone, limit);
+  const data = await services.dashboard.getTransactions(ledger, period, timezone, limit);
   return c.json({ transactions: data });
 });
 
 api.get('/dashboard/categories', async (c) => {
   const services = c.var.services;
-  const session = c.get('session')!;
+  const ledger = await resolveLedger(c);
+  if (!ledger) return c.json({ error: 'forbidden' }, 403);
   const period = (c.req.query('period') || 'month').trim();
-  const timezone = c.req.query('timezone') || inferTimezoneFromPhone(session.whatsappNumber);
-  const data = await services.dashboard.getCategories(session.whatsappNumber, period, timezone);
+  const timezone = c.req.query('timezone') || inferTimezoneFromPhone(ledger);
+  const data = await services.dashboard.getCategories(ledger, period, timezone);
   return c.json({ categories: data });
 });
 
 api.get('/dashboard/budget', async (c) => {
   const services = c.var.services;
-  const session = c.get('session')!;
-  const data = await services.dashboard.getBudget(session.whatsappNumber);
+  const ledger = await resolveLedger(c);
+  if (!ledger) return c.json({ error: 'forbidden' }, 403);
+  const data = await services.dashboard.getBudget(ledger);
   return c.json({ budget: data ?? null });
 });
 
@@ -170,7 +195,11 @@ api.patch('/dashboard/transactions/:id', async (c) => {
   const body = await c.req
     .json<{ amount?: number; transactionType?: string; category?: string; description?: string }>()
     .catch(() => ({} as { amount?: number; transactionType?: string; category?: string; description?: string }));
-  const result = await services.dashboard.updateTransaction(session.whatsappNumber, id, body);
+  const ledgerId = await services.dashboard.canManageTransaction(session.whatsappNumber, id);
+  if (!ledgerId) {
+    return c.json({ ok: false, error: 'not_found' }, 404);
+  }
+  const result = await services.dashboard.updateTransaction(ledgerId, id, body);
   if (!result.ok) {
     const status = result.error === 'not_found' ? 404 : 400;
     return c.json(result, status);
@@ -185,7 +214,11 @@ api.delete('/dashboard/transactions/:id', async (c) => {
   if (!Number.isInteger(id)) {
     return c.json({ ok: false, error: 'invalid_id' }, 400);
   }
-  const result = await services.dashboard.deleteTransaction(session.whatsappNumber, id);
+  const ledgerId = await services.dashboard.canManageTransaction(session.whatsappNumber, id);
+  if (!ledgerId) {
+    return c.json({ ok: false, error: 'not_found' }, 404);
+  }
+  const result = await services.dashboard.deleteTransaction(ledgerId, id);
   if (!result.ok) {
     const status = result.error === 'not_found' ? 404 : 400;
     return c.json(result, status);

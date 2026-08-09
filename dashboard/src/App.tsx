@@ -4,7 +4,7 @@ import Dashboard from './components/Dashboard';
 import Transactions from './components/Transactions';
 import Nav from './components/Nav';
 import { I18nProvider, useI18n, type Language } from './lib/i18n';
-import { api, logout, markLoggedIn, clearLoggedIn, isMarkedLoggedIn, updateLanguage, UnauthorizedError, type MeResponse } from './lib/api';
+import { api, logout, markLoggedIn, clearLoggedIn, isMarkedLoggedIn, getGroups, updateLanguage, UnauthorizedError, type MeResponse, type Group, type Scope } from './lib/api';
 import { navigate, useRoute } from './lib/router';
 
 export default function App() {
@@ -89,6 +89,18 @@ function Shell({
   const { t, lang, setLang } = useI18n();
   const route = useRoute();
   const [banner, setBanner] = useState('');
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [scope, setScope] = useState<Scope>({ scope: 'personal' });
+
+  useEffect(() => {
+    getGroups()
+      .then((res) => setGroups(res.groups))
+      .catch((err) => {
+        if (err instanceof UnauthorizedError) {
+          window.location.reload();
+        }
+      });
+  }, []);
 
   const toggleLanguage = async () => {
     const next: Language = lang === 'id' ? 'en' : 'id';
@@ -121,8 +133,23 @@ function Shell({
           </div>
         )}
         {route === '/transactions'
-          ? <Transactions session={session} />
-          : <Dashboard session={session} onNavigate={navigate} />}
+          ? (
+            <Transactions
+              session={session}
+              scope={scope}
+              onScopeChange={setScope}
+              groups={groups}
+            />
+          )
+          : (
+            <Dashboard
+              session={session}
+              onNavigate={navigate}
+              scope={scope}
+              onScopeChange={setScope}
+              groups={groups}
+            />
+          )}
       </main>
     </div>
   );

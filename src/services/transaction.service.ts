@@ -11,7 +11,7 @@ export class TransactionService {
     private evolutionClient: WahaClient
   ) {}
 
-  async handleTransaction(remoteJid: string, data: TransactionData, loggedBy?: string, lang: Language = 'id') {
+  async handleTransaction(remoteJid: string, data: TransactionData, loggedBy?: string, lang: Language = 'id', loggedByName?: string) {
     const t = this.i18n.getT(lang);
     const { amount, transactionType: type, category, description } = data;
 
@@ -22,6 +22,7 @@ export class TransactionService {
       category,
       description,
       loggedBy: loggedBy || remoteJid,
+      loggedByName: loggedByName ?? null,
     });
 
     const amountStr = amount.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US');

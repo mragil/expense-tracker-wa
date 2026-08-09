@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   api,
   UnauthorizedError,
+  scopeQuery,
   type MeResponse,
   type SummaryResponse,
   type TransactionsResponse,
@@ -9,18 +10,24 @@ import {
   type BudgetResponse,
   type Transaction,
   type Category,
+  type Group,
+  type Scope,
 } from '../lib/api';
 import { useI18n } from '../lib/i18n';
-import { fmtCurrency, fmtMoney, fmtDateTime } from '../lib/format';
+import { fmtCurrency, fmtMoney, fmtDateTime, fmtPhone } from '../lib/format';
 import { PERIODS } from '../lib/periods';
 import Icon, { type IconName } from './Icon';
+import ScopeSelector from './ScopeSelector';
 
 interface DashboardProps {
   session: MeResponse;
   onNavigate: (to: string) => void;
+  scope: Scope;
+  onScopeChange: (scope: Scope) => void;
+  groups: Group[];
 }
 
-export default function Dashboard({ session, onNavigate }: DashboardProps) {
+export default function Dashboard({ session, onNavigate, scope, onScopeChange, groups }: DashboardProps) {
   const { t, lang } = useI18n();
   const [period, setPeriod] = useState('month');
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
@@ -35,11 +42,12 @@ export default function Dashboard({ session, onNavigate }: DashboardProps) {
   const load = useCallback(() => {
     setLoading(true);
     setError('');
+    const qs = scopeQuery(scope);
     return Promise.all([
-      api<SummaryResponse>(`/dashboard/summary?period=${period}&timezone=${encodeURIComponent(tz)}`),
-      api<TransactionsResponse>(`/dashboard/transactions?period=${period}&limit=100&timezone=${encodeURIComponent(tz)}`),
-      api<CategoriesResponse>(`/dashboard/categories?period=${period}&timezone=${encodeURIComponent(tz)}`),
-      api<BudgetResponse>(`/dashboard/budget?timezone=${encodeURIComponent(tz)}`),
+      api<SummaryResponse>(`/dashboard/summary?period=${period}&timezone=${encodeURIComponent(tz)}&${qs}`),
+      api<TransactionsResponse>(`/dashboard/transactions?period=${period}&limit=100&timezone=${encodeURIComponent(tz)}&${qs}`),
+      api<CategoriesResponse>(`/dashboard/categories?period=${period}&timezone=${encodeURIComponent(tz)}&${qs}`),
+      api<BudgetResponse>(`/dashboard/budget?timezone=${encodeURIComponent(tz)}&${qs}`),
     ])
       .then(([s, tr, cat, bd]) => {
         setSummary(s);
@@ -55,7 +63,7 @@ export default function Dashboard({ session, onNavigate }: DashboardProps) {
         setError(err instanceof Error ? err.message : t('errFailedToLoad'));
       })
       .finally(() => setLoading(false));
-  }, [period, tz, t]);
+  }, [period, tz, t, scope]);
 
   useEffect(() => {
     load();
@@ -76,16 +84,19 @@ export default function Dashboard({ session, onNavigate }: DashboardProps) {
     <div>
       <div className="flex items-center justify-between gap-4 mb-6" style={{ flexWrap: 'wrap' }}>
         <h1 className="text-xl font-bold">{t('overview')}</h1>
-        <div className="period-tabs">
-          {PERIODS.map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setPeriod(p.key)}
-              className={period === p.key ? 'active' : ''}
-            >
-              {t(p.tKey)}
-            </button>
-          ))}
+        <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
+          <ScopeSelector groups={groups} scope={scope} onScopeChange={onScopeChange} />
+          <div className="period-tabs">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                className={period === p.key ? 'active' : ''}
+              >
+                {t(p.tKey)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -221,29 +232,34 @@ export default function Dashboard({ session, onNavigate }: DashboardProps) {
                 </div>
               ) : (
                 <div>
-                  {recent.map((trx) => (
-                    <div key={trx.id} className="txn-row">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="txn-avatar">
-                          <Icon name={trx.transactionType === 'income' ? 'arrowUp' : 'arrowDown'} size={15} />
-                        </span>
-                        <div className="min-w-0" style={{ flex: 1 }}>
-                          <p className="text-sm font-medium text-gray-800 truncate">
-                            {trx.category ?? (trx.transactionType === 'income' ? t('income') : t('expense'))}
-                          </p>
-                          <p className="text-xs text-gray-400 truncate">
-                            {trx.description || fmtDateTime(trx.createdAt, lang)}
-                          </p>
+                  {recent.map((trx) => {
+                    const logged = scope.scope === 'group' && trx.loggedBy
+                      ? `${t('byLabel')} ${fmtPhone(trx.loggedBy)}${trx.loggedByName ? ` (${trx.loggedByName})` : ''}`
+                      : '';
+                    return (
+                      <div key={trx.id} className="txn-row">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="txn-avatar">
+                            <Icon name={trx.transactionType === 'income' ? 'arrowUp' : 'arrowDown'} size={15} />
+                          </span>
+                          <div className="min-w-0" style={{ flex: 1 }}>
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {trx.category ?? (trx.transactionType === 'income' ? t('income') : t('expense'))}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">
+                              {logged ? `${logged} · ` : ''}{trx.description || fmtDateTime(trx.createdAt, lang)}
+                            </p>
+                          </div>
                         </div>
+                        <span
+                          className="txn-amount shrink-0"
+                          style={{ color: trx.transactionType === 'income' ? '#16a34a' : '#dc2626' }}
+                        >
+                          {trx.transactionType === 'income' ? '+' : '−'}{fmtMoney(trx.amount, lang)}
+                        </span>
                       </div>
-                      <span
-                        className="txn-amount shrink-0"
-                        style={{ color: trx.transactionType === 'income' ? '#16a34a' : '#dc2626' }}
-                      >
-                        {trx.transactionType === 'income' ? '+' : '−'}{fmtMoney(trx.amount, lang)}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

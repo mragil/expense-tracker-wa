@@ -1,4 +1,4 @@
-import { otpCodes, webSessions, users, transactions, budgets, authAttempts } from '@/db/schema';
+import { otpCodes, webSessions, users, transactions, budgets, authAttempts, groups } from '@/db/schema';
 import { and, eq, gte, desc, lt, count } from 'drizzle-orm';
 import {
   startOfDay,
@@ -256,6 +256,42 @@ export class DashboardService {
     await this.db.delete(webSessions).where(eq(webSessions.id, token));
   }
 
+  async getGroups(ownerNumber: string) {
+    const rows = await this.db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.addedBy, ownerNumber), eq(groups.isActive, true)))
+      .orderBy(groups.name)
+      .all();
+    return rows.map((g) => ({ jid: g.jid, name: g.name ?? g.jid }));
+  }
+
+  async getGroupForOwner(ownerNumber: string, groupJid: string) {
+    return this.db
+      .select()
+      .from(groups)
+      .where(
+        and(
+          eq(groups.jid, groupJid),
+          eq(groups.addedBy, ownerNumber),
+          eq(groups.isActive, true),
+        ),
+      )
+      .get();
+  }
+
+  async canManageTransaction(ownerNumber: string, id: number): Promise<string | null> {
+    const txn = await this.db
+      .select({ whatsappId: transactions.whatsappId })
+      .from(transactions)
+      .where(eq(transactions.id, id))
+      .get();
+    if (!txn) return null;
+    if (txn.whatsappId === ownerNumber) return txn.whatsappId;
+    const group = await this.getGroupForOwner(ownerNumber, txn.whatsappId);
+    return group ? txn.whatsappId : null;
+  }
+
   async cleanupExpired() {
     await this.db
       .delete(webSessions)
@@ -310,6 +346,8 @@ export class DashboardService {
       transactionType: trx.transactionType,
       category: trx.category,
       description: trx.description,
+      loggedBy: trx.loggedBy,
+      loggedByName: trx.loggedByName,
       createdAt: trx.createdAt ? trx.createdAt.getTime() : null,
     }));
   }
