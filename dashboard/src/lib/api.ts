@@ -1,28 +1,31 @@
-const TOKEN_KEY = 'expense_token';
-
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+export class UnauthorizedError extends Error {
+  constructor() {
+    super('Unauthorized');
+    this.name = 'UnauthorizedError';
+  }
 }
 
-export function setToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token);
+const LOGGED_IN_KEY = 'expense_logged_in';
+
+export function markLoggedIn(): void {
+  localStorage.setItem(LOGGED_IN_KEY, '1');
 }
 
-export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
+export function clearLoggedIn(): void {
+  localStorage.removeItem(LOGGED_IN_KEY);
+}
+
+export function isMarkedLoggedIn(): boolean {
+  return localStorage.getItem(LOGGED_IN_KEY) === '1';
 }
 
 export async function api<T>(
   path: string,
   options: { method?: string; body?: unknown } = {},
 ): Promise<T> {
-  const token = getToken();
   const headers: Record<string, string> = {};
   if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json';
-  }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const res = await fetch(`/api${path}`, {
@@ -32,9 +35,7 @@ export async function api<T>(
   });
 
   if (res.status === 401) {
-    clearToken();
-    window.location.href = '/';
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError();
   }
 
   const data = (await res.json().catch(() => null)) as T | null;
@@ -59,8 +60,7 @@ export interface OtpResponse {
 
 export interface VerifyResponse {
   ok: boolean;
-  token?: string;
-  user?: { whatsappNumber: string; displayName: string | null };
+  user?: MeResponse;
   error?: string;
 }
 
@@ -137,5 +137,11 @@ export function updateLanguage(language: 'en' | 'id'): Promise<MeResponse> {
   return api<MeResponse>('/auth/me', {
     method: 'PATCH',
     body: { language },
+  });
+}
+
+export function logout(): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>('/auth/logout', {
+    method: 'POST',
   });
 }

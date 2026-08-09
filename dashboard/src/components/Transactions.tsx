@@ -3,6 +3,7 @@ import {
   api,
   updateTransaction,
   deleteTransaction,
+  UnauthorizedError,
   type MeResponse,
   type TransactionsResponse,
   type Transaction,
@@ -31,7 +32,13 @@ export default function Transactions({ session }: { session: MeResponse }) {
       `/dashboard/transactions?period=${period}&limit=500&timezone=${encodeURIComponent(tz)}`,
     )
       .then((res) => setTransactions(res.transactions))
-      .catch((err) => setError(err instanceof Error ? err.message : t('errFailedToLoad')))
+      .catch((err) => {
+        if (err instanceof UnauthorizedError) {
+          window.location.reload();
+          return;
+        }
+        setError(err instanceof Error ? err.message : t('errFailedToLoad'));
+      })
       .finally(() => setLoading(false));
   }, [period, tz, t]);
 

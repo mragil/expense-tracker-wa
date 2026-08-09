@@ -1,8 +1,40 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { inferTimezoneFromPhone } from '@/lib/time';
 import type { AppEnv } from '@/types';
 
 const api = new Hono<AppEnv>();
+
+const SESSION_COOKIE = 'expense_session';
+const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+function cookieValue(c: Context<AppEnv>): string | undefined {
+  const header = c.req.header('Cookie');
+  if (!header) return undefined;
+  for (const part of header.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() === SESSION_COOKIE) {
+      return decodeURIComponent(part.slice(eq + 1).trim());
+    }
+  }
+  return undefined;
+}
+
+function tokenFromRequest(c: Context<AppEnv>): string {
+  return cookieValue(c) ?? (c.req.header('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+}
+
+function sessionCookie(token: string, maxAgeSeconds: number, secure: boolean): string {
+  const attrs = ['Path=/', 'HttpOnly', 'SameSite=Strict'];
+  if (maxAgeSeconds >= 0) attrs.push(`Max-Age=${maxAgeSeconds}`);
+  if (secure) attrs.push('Secure');
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; ${attrs.join('; ')}`;
+}
+
+function isSecureRequest(c: Context<AppEnv>): boolean {
+  return c.req.url.startsWith('https://');
+}
 
 api.use('*', async (c, next) => {
   await next();
@@ -47,20 +79,20 @@ api.post('/auth/verify', async (c) => {
     const status = result.error === 'no_code' ? 404 : result.error === 'rate_limited' ? 429 : 400;
     return c.json(result, status);
   }
-  return c.json(result);
+  c.header('Set-Cookie', sessionCookie(result.token, SESSION_TTL_SECONDS, isSecureRequest(c)));
+  return c.json({ ok: true as const, user: result.user });
 });
 
 api.post('/auth/logout', async (c) => {
   const services = c.var.services;
-  const token = (c.req.header('Authorization') ?? '').replace(/^Bearer\s+/i, '');
-  await services.dashboard.logout(token);
+  await services.dashboard.logout(tokenFromRequest(c));
+  c.header('Set-Cookie', sessionCookie('', 0, isSecureRequest(c)));
   return c.json({ ok: true });
 });
 
 api.get('/auth/me', async (c) => {
   const services = c.var.services;
-  const token = (c.req.header('Authorization') ?? '').replace(/^Bearer\s+/i, '');
-  const me = await services.dashboard.getMe(token);
+  const me = await services.dashboard.getMe(tokenFromRequest(c));
   if (!me) {
     return c.json({ error: 'unauthorized' }, 401);
   }
@@ -69,14 +101,13 @@ api.get('/auth/me', async (c) => {
 
 api.patch('/auth/me', async (c) => {
   const services = c.var.services;
-  const token = (c.req.header('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const body = await c.req.json<{ language?: string }>().catch(() => ({} as { language?: string }));
-  const result = await services.dashboard.updateLanguage(token, body.language ?? '');
+  const result = await services.dashboard.updateLanguage(tokenFromRequest(c), body.language ?? '');
   if (!result.ok) {
     const status = result.error === 'unauthorized' ? 401 : 400;
     return c.json(result, status);
   }
-  const me = await services.dashboard.getMe(token);
+  const me = await services.dashboard.getMe(tokenFromRequest(c));
   if (!me) {
     return c.json({ error: 'unauthorized' }, 401);
   }
@@ -85,8 +116,7 @@ api.patch('/auth/me', async (c) => {
 
 api.use('/dashboard/*', async (c, next) => {
   const services = c.var.services;
-  const token = (c.req.header('Authorization') ?? '').replace(/^Bearer\s+/i, '');
-  const session = await services.dashboard.getUserForToken(token);
+  const session = await services.dashboard.getUserForToken(tokenFromRequest(c));
   if (!session) {
     return c.json({ error: 'unauthorized' }, 401);
   }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   api,
+  UnauthorizedError,
   type MeResponse,
   type SummaryResponse,
   type TransactionsResponse,
@@ -47,6 +48,10 @@ export default function Dashboard({ session, onNavigate }: DashboardProps) {
         setBudget(bd.budget);
       })
       .catch((err) => {
+        if (err instanceof UnauthorizedError) {
+          window.location.reload();
+          return;
+        }
         setError(err instanceof Error ? err.message : t('errFailedToLoad'));
       })
       .finally(() => setLoading(false));

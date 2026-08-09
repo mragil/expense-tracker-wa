@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api, setToken, type MeResponse, type VerifyResponse, type OtpResponse } from '../lib/api';
+import { api, type MeResponse, type VerifyResponse, type OtpResponse } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import Icon from './Icon';
 
@@ -49,7 +49,7 @@ export default function Login({ onLogin }: LoginProps) {
         method: 'POST',
         body: { phone, code },
       });
-      if (!res.ok || !res.token) {
+      if (!res.ok || !res.user) {
         const msg = res.error === 'invalid' || res.error === 'used'
           ? t('errInvalidCode')
           : res.error === 'expired'
@@ -60,9 +60,7 @@ export default function Login({ onLogin }: LoginProps) {
         setError(msg);
         return;
       }
-      setToken(res.token!);
-      const me = await api<MeResponse>('/auth/me');
-      onLogin(me);
+      onLogin(res.user);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errVerifyFailed'));
     } finally {

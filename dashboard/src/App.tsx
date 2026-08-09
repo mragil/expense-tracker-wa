@@ -4,7 +4,7 @@ import Dashboard from './components/Dashboard';
 import Transactions from './components/Transactions';
 import Nav from './components/Nav';
 import { I18nProvider, useI18n, type Language } from './lib/i18n';
-import { api, type MeResponse, clearToken, updateLanguage } from './lib/api';
+import { api, logout, markLoggedIn, clearLoggedIn, isMarkedLoggedIn, updateLanguage, UnauthorizedError, type MeResponse } from './lib/api';
 import { navigate, useRoute } from './lib/router';
 
 export default function App() {
@@ -27,26 +27,31 @@ function AppInner() {
   }, [session, setLang]);
 
   useEffect(() => {
-    const token = localStorage.getItem('expense_token');
-    if (!token) {
+    if (!isMarkedLoggedIn()) {
       setLoading(false);
       return;
     }
     api<MeResponse>('/auth/me')
       .then(setSession)
       .catch(() => {
-        clearToken();
+        clearLoggedIn();
         setSession(null);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const handleLogin = (user: MeResponse) => {
+    markLoggedIn();
     setSession(user);
   };
 
-  const handleLogout = () => {
-    clearToken();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // ignore; session cleared client-side regardless
+    }
+    clearLoggedIn();
     setSession(null);
     navigate('/');
   };
@@ -92,7 +97,11 @@ function Shell({
       await updateLanguage(next);
       setLang(next);
       onLanguageChange(next);
-    } catch {
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        window.location.reload();
+        return;
+      }
       setBanner(t('errFailedToSave'));
     }
   };
