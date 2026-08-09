@@ -303,7 +303,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
               </div>
 
               <div className="card">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                   <h2 className="font-semibold">{t('recentTransactions')}</h2>
                   <span className="text-xs text-gray-400">{t('clickToEdit')}</span>
                 </div>

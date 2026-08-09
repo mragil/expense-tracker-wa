@@ -378,8 +378,7 @@ a:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 8px;
-  margin: 0 -8px;
+  padding: 8px 0;
   border-bottom: 1px solid var(--border);
   border-radius: var(--radius);
   transition: background-color 0.15s;
