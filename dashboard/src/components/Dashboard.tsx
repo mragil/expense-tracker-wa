@@ -140,7 +140,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
       <nav className="nav">
         <div className="nav-inner">
           <div className="logo">
-            <span>💰</span>
+            <span className="logo-chip">💰</span>
             <span>Expense Tracker</span>
           </div>
           <div className="flex items-center gap-4">
@@ -185,7 +185,25 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
         )}
 
         {loading && !summary ? (
-          <p className="text-gray-500 text-center" style={{ padding: '48px 0' }}>{t('loading')}</p>
+          <div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div className="skeleton skeleton-card" />
+              <div className="skeleton skeleton-card" />
+              <div className="skeleton skeleton-card" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="card">
+                <div className="skeleton skeleton-line" />
+                <div className="skeleton skeleton-line short" />
+                <div className="skeleton skeleton-line short" />
+              </div>
+              <div className="card">
+                <div className="skeleton skeleton-line" />
+                <div className="skeleton skeleton-line short" />
+                <div className="skeleton skeleton-line short" />
+              </div>
+            </div>
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -193,18 +211,21 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                 label={t('income')}
                 value={`+${fmtCurrency(summary?.totalIncome ?? 0)}`}
                 color="#16a34a"
+                icon="💰"
                 detail={`${fmt(summary?.totalIncome ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
               />
               <StatCard
                 label={t('expense')}
                 value={`−${fmtCurrency(summary?.totalExpense ?? 0)}`}
                 color="#dc2626"
+                icon="💸"
                 detail={`${fmt(summary?.totalExpense ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
               />
               <StatCard
                 label={t('balance')}
                 value={fmtCurrency(summary?.balance ?? 0)}
                 color={(summary?.balance ?? 0) >= 0 ? '#111827' : '#dc2626'}
+                icon="👛"
                 detail={t('balanceDetail')}
               />
             </div>
@@ -244,7 +265,11 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
               <div className="card">
                 <h2 className="font-semibold mb-4">{t('spendingByCategory')}</h2>
                 {expenses.length === 0 ? (
-                  <p className="text-sm text-gray-400">{t('noExpenses')}</p>
+                  <div className="empty-state">
+                    <span className="empty-icon">📊</span>
+                    <p className="empty-title">{t('noExpenses')}</p>
+                    <p className="empty-hint">{t('noExpensesHint')}</p>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {expenses.map(([cat, total]) => {
@@ -273,7 +298,11 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                   <span className="text-xs text-gray-400">{t('clickToEdit')}</span>
                 </div>
                 {transactions.length === 0 ? (
-                  <p className="text-sm text-gray-400">{t('noTransactions')}</p>
+                  <div className="empty-state">
+                    <span className="empty-icon">📭</span>
+                    <p className="empty-title">{t('noTransactions')}</p>
+                    <p className="empty-hint">{t('noTransactionsHint')}</p>
+                  </div>
                 ) : (
                   <div className="max-h-96 overflow-y-auto">
                     {transactions.map((trx) => (
@@ -293,7 +322,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <span
-                            className="text-sm font-semibold"
+                            className="txn-amount"
                             style={{ color: trx.transactionType === 'income' ? '#16a34a' : '#dc2626' }}
                           >
                             {trx.transactionType === 'income' ? '+' : '−'}{fmt(trx.amount, lang)}
@@ -363,12 +392,15 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
   );
 }
 
-function StatCard({ label, value, color, detail }: { label: string; value: string; color: string; detail: string }) {
+function StatCard({ label, value, color, detail, icon }: { label: string; value: string; color: string; detail: string; icon: string }) {
   return (
-    <div className="card">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-bold mt-1" style={{ color }}>{value}</p>
-      <p className="text-xs text-gray-400 mt-1">{detail}</p>
+    <div className="card stat-card">
+      <div>
+        <p className="stat-label">{label}</p>
+        <p className="stat-value text-2xl" style={{ color }}>{value}</p>
+        <p className="stat-detail">{detail}</p>
+      </div>
+      <span className="stat-icon" style={{ background: `${color}1a` }}>{icon}</span>
     </div>
   );
 }

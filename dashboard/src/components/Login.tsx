@@ -70,8 +70,8 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ padding: '0 16px' }}>
-      <div className="card w-full max-w-md text-center" style={{ position: 'relative' }}>
+    <div className="login-shell">
+      <div className="card login-card">
         <button
           type="button"
           onClick={() => setLang(lang === 'id' ? 'en' : 'id')}
@@ -80,9 +80,9 @@ export default function Login({ onLogin }: LoginProps) {
         >
           {lang === 'id' ? 'EN' : 'ID'}
         </button>
-        <div style={{ fontSize: 40 }} className="mb-4">💰</div>
-        <h1 style={{ fontSize: 24 }} className="font-bold">{t('appTitle')}</h1>
-        <p className="text-sm text-gray-500 mt-1">{t('signInSubtitle')}</p>
+        <div className="login-logo">💰</div>
+        <h1 className="login-title">{t('appTitle')}</h1>
+        <p className="login-subtitle">{t('signInSubtitle')}</p>
 
         {step === 'phone' ? (
           <form onSubmit={handleRequest} style={{ textAlign: 'left', marginTop: 24 }}>
