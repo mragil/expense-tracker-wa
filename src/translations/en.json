@@ -17,6 +17,7 @@
   "budget_update_success": "✅ Your monthly budget has been updated to *{{amount}}*.",
   "budget_update_footer": "\n\nType \"Check budget\" to see your usage status.",
   "group_welcome": "*Hello Everyone!* 👋\n\nI am *ExpenseBot*, your expense tracking assistant.\n\nType messages like:\n- \"Coffee 25k\"\n- \"Salary 5m\"\n- \"What is today's expense?\"\n\nI will track expenses for *this Group*.",
+  "group_limit_reached": "⚠️ Sorry, this group can't be tracked. Each user can manage up to *{max} groups*. Please leave this bot from your other groups or contact the owner.",
   "report_title": "*📊 Financial Report ({{period}})*",
   "report_income": "💰 *Total Income:* ",
   "report_expense": "💸 *Total Expense:* ",

@@ -46,6 +46,7 @@ describe('WebhookService', () => {
       resolvePhoneJid: mock((jid: string) => Promise.resolve(jid)),
       extractMessageText: mock(() => 'hello'),
       sendTextMessage: mock(() => Promise.resolve({})),
+      leaveGroup: mock(() => Promise.resolve({})),
     };
     mockAi = {
       extractIntent: mock(() => Promise.resolve({ type: 'transaction', detectedLanguage: 'en' })),
@@ -120,5 +121,76 @@ describe('WebhookService', () => {
 
     expect(result.status).toBe('processed_report');
     expect(mockReport.generateSummary).toHaveBeenCalledWith('user123', expect.objectContaining({ period: 'month' }), 'en', expect.any(String));
+  });
+
+  it('should reject group join when owner already manages 5 active groups', async () => {
+    const envelope = {
+      event: 'group.v2.join' as const,
+      payload: {
+        group: { id: '999999999@g.us', subject: 'Sixth Group', participants: [{ id: '6281275973221@c.us' }] },
+      },
+    } as any;
+
+    mockDb.query.users.findFirst = mock(() => Promise.resolve({ whatsappNumber: '6281275973221@c.us', language: 'en' }));
+    mockEvolution.isWhitelisted = mock(() => true);
+    mockDb.select = mock(() => mockDb);
+    mockDb.from = mock(() => mockDb);
+    mockDb.where = mock(() => mockDb);
+    mockDb.get = mock(() => Promise.resolve({ count: 5 }));
+
+    const result = await service.handleWebhook(envelope);
+
+    expect(result.status).toBe('group_limit_reached');
+    expect(mockEvolution.leaveGroup).toHaveBeenCalledWith('999999999@g.us');
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it('should register group join when owner is below the group limit', async () => {
+    const envelope = {
+      event: 'group.v2.join' as const,
+      payload: {
+        group: { id: '888888888@g.us', subject: 'New Group', participants: [{ id: '6281275973221@c.us' }] },
+      },
+    } as any;
+
+    mockDb.query.users.findFirst = mock(() => Promise.resolve({ whatsappNumber: '6281275973221@c.us', language: 'en' }));
+    mockEvolution.isWhitelisted = mock(() => true);
+    mockDb.select = mock(() => mockDb);
+    mockDb.from = mock(() => mockDb);
+    mockDb.where = mock(() => mockDb);
+    mockDb.get = mock(() => Promise.resolve({ count: 2 }));
+
+    const result = await service.handleWebhook(envelope);
+
+    expect(result.status).toBe('group_registered');
+    expect(mockDb.insert).toHaveBeenCalled();
+  });
+
+  it('should honor the MAX_GROUPS_PER_OWNER env var', async () => {
+    const envelope = {
+      event: 'group.v2.join' as const,
+      payload: {
+        group: { id: '777777777@g.us', subject: 'Capped Group', participants: [{ id: '6281275973221@c.us' }] },
+      },
+    } as any;
+
+    (service as any).env = {
+      OPEN_FOR_PUBLIC: 'false',
+      WAHA_WHITELISTED_NUMBERS: '',
+      MAX_GROUPS_PER_OWNER: '1',
+    };
+
+    mockDb.query.users.findFirst = mock(() => Promise.resolve({ whatsappNumber: '6281275973221@c.us', language: 'en' }));
+    mockEvolution.isWhitelisted = mock(() => true);
+    mockDb.select = mock(() => mockDb);
+    mockDb.from = mock(() => mockDb);
+    mockDb.where = mock(() => mockDb);
+    mockDb.get = mock(() => Promise.resolve({ count: 1 }));
+
+    const result = await service.handleWebhook(envelope);
+
+    expect(result.status).toBe('group_limit_reached');
+    expect(mockEvolution.leaveGroup).toHaveBeenCalledWith('777777777@g.us');
+    expect(mockEvolution.sendTextMessage).toHaveBeenCalledWith('777777777@g.us', expect.stringContaining('1'));
   });
 });

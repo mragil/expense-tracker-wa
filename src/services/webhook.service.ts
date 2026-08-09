@@ -1,5 +1,5 @@
 import { users, groups } from '@/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { inferTimezoneFromPhone, isValidTimezone } from '@/lib/time';
 import type { WahaClient } from '@/lib/waha';
 import type { OnboardingService } from '@/services/onboarding.service';
@@ -20,6 +20,8 @@ import type {
   Env,
 } from '@/types';
 import type { AiClient } from '@/lib/ai';
+
+const DEFAULT_MAX_GROUPS_PER_OWNER = 3;
 
 export class WebhookService {
   constructor(
@@ -174,7 +176,7 @@ export class WebhookService {
 
     const activeUser = authorizedParticipant
       ? await this.db.query.users.findFirst({
-          where: and(eq(users.whatsappNumber, authorizedParticipant.id), eq(users.isActive, true)),
+          where: and(eq(users.whatsappNumber, await this.evolutionClient.resolvePhoneJid(authorizedParticipant.id)), eq(users.isActive, true)),
         })
       : null;
 
@@ -184,17 +186,39 @@ export class WebhookService {
       return { status: 'left_unauthorized_group' };
     }
 
+    const ownerNumber = authorizedParticipant
+      ? await this.evolutionClient.resolvePhoneJid(authorizedParticipant.id)
+      : activeUser?.whatsappNumber || 'system';
+
+    const maxGroups = Number(this.env.MAX_GROUPS_PER_OWNER);
+    const maxGroupsPerOwner = Number.isFinite(maxGroups) && maxGroups > 0 ? maxGroups : DEFAULT_MAX_GROUPS_PER_OWNER;
+
+    const activeGroupCount = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(groups)
+      .where(and(eq(groups.addedBy, ownerNumber), eq(groups.isActive, true), ne(groups.jid, remoteJid)))
+      .get();
+
+    if ((activeGroupCount?.count ?? 0) >= maxGroupsPerOwner) {
+      const ownerLang = (activeUser?.language as Language | undefined) ?? 'id';
+      const message = this.i18n.getT(ownerLang).group_limit_reached.replace('{max}', String(maxGroupsPerOwner));
+      await this.evolutionClient.sendTextMessage(remoteJid, message);
+      await this.evolutionClient.leaveGroup(remoteJid);
+      console.warn(`Group limit reached for ${ownerNumber} (${activeGroupCount?.count}/${maxGroupsPerOwner}); left ${remoteJid}.`);
+      return { status: 'group_limit_reached' };
+    }
+
     await this.db.insert(groups).values({
       jid: remoteJid,
       name: subject || 'Untitled Group',
-      addedBy: authorizedParticipant?.id || activeUser?.whatsappNumber || 'system',
+      addedBy: ownerNumber,
       isActive: true,
       updatedAt: new Date(),
     }).onConflictDoUpdate({
       target: groups.jid,
       set: {
         name: subject || 'Untitled Group',
-        addedBy: authorizedParticipant?.id || activeUser?.whatsappNumber,
+        addedBy: ownerNumber,
         isActive: true,
         updatedAt: new Date(),
       },

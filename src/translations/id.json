@@ -17,6 +17,7 @@
   "budget_update_success": "✅ Budget bulanan Anda berhasil diperbarui menjadi *{{amount}}*.",
   "budget_update_footer": "\n\nKetik \"Cek budget\" untuk melihat status penggunaan Anda.",
   "group_welcome": "*Halo Semuanya!* 👋\n\nSaya adalah *ExpenseBot*, asisten pencatat pengeluaran Anda.\n\nKetik pesan seperti:\n- \"Beli kopi 25rb\"\n- \"Gajian 5jt\"\n- \"Berapa pengeluaran hari ini?\"\n\nSaya akan mencatat pengeluaran untuk *Grup ini*.",
+  "group_limit_reached": "⚠️ Maaf, grup ini tidak bisa dipantau. Setiap pengguna hanya bisa mengelola maksimal *{max} grup*. Silakan keluarkan bot ini dari grup lain Anda atau hubungi pemilik.",
   "report_title": "*📊 Laporan Keuangan ({{period}})*",
   "report_income": "💰 *Total Pemasukan:* ",
   "report_expense": "💸 *Total Pengeluaran:* ",

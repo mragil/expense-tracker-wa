@@ -24,6 +24,7 @@
     "WAHA_API_URL": "http://waha.expense-tracker.mrtrr.web.id:3000",
     "WAHA_INSTANCE": "expense-bot",
     "OPEN_FOR_PUBLIC": "false",
-    "WAHA_WHITELISTED_NUMBERS": "6281275973221@c.us"
+    "WAHA_WHITELISTED_NUMBERS": "6281275973221@c.us",
+    "MAX_GROUPS_PER_OWNER": "3"
   }
 }

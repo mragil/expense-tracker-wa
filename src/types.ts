@@ -130,6 +130,7 @@ export interface Env {
   WAHA_INSTANCE: string;
   WAHA_WHITELISTED_NUMBERS?: string;
   OPEN_FOR_PUBLIC?: string;
+  MAX_GROUPS_PER_OWNER?: string;
 }
 
 export interface Services {
