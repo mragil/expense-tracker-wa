@@ -1,5 +1,5 @@
-import { otpCodes, webSessions, users, transactions, budgets } from '@/db/schema';
-import { and, eq, gte, desc, lt } from 'drizzle-orm';
+import { otpCodes, webSessions, users, transactions, budgets, authAttempts } from '@/db/schema';
+import { and, eq, gte, desc, lt, count } from 'drizzle-orm';
 import {
   startOfDay,
   startOfWeek,
@@ -13,6 +13,11 @@ import type { Db } from '@/db/index';
 
 export const WEB_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const OTP_TTL_MS = 10 * 60 * 1000;
+export const OTP_REQUEST_WINDOW_MS = 10 * 60 * 1000;
+export const OTP_REQUEST_MAX_PER_PHONE = 3;
+export const OTP_REQUEST_MAX_PER_IP = 10;
+export const OTP_VERIFY_FAIL_MAX = 5;
+export const OTP_VERIFY_WINDOW_MS = 10 * 60 * 1000;
 
 export interface DashboardPeriod {
   from?: Date;
@@ -64,12 +69,56 @@ export class DashboardService {
     return this.db.select().from(users).where(eq(users.whatsappNumber, whatsappNumber)).get();
   }
 
-  async requestOtp(phoneInput: string) {
+  private async countAttempts(whatsappNumber: string, action: string, windowMs: number): Promise<number> {
+    const since = new Date(Date.now() - windowMs);
+    const row = await this.db
+      .select({ n: count() })
+      .from(authAttempts)
+      .where(
+        and(
+          eq(authAttempts.whatsappNumber, whatsappNumber),
+          eq(authAttempts.action, action),
+          gte(authAttempts.createdAt, since),
+        ),
+      )
+      .get();
+    return row?.n ?? 0;
+  }
+
+  private async recordAttempt(whatsappNumber: string, action: string, ip?: string) {
+    await this.db.insert(authAttempts).values({
+      whatsappNumber,
+      action,
+      ip: ip ?? null,
+    });
+  }
+
+  private async cleanupAttempts() {
+    await this.db
+      .delete(authAttempts)
+      .where(lt(authAttempts.createdAt, new Date(Date.now() - OTP_REQUEST_WINDOW_MS)));
+  }
+
+  async requestOtp(phoneInput: string, ip?: string) {
     const whatsappNumber = normalizePhone(phoneInput);
     const user = await this.validUser(whatsappNumber);
     if (!user) {
       return { ok: false, error: 'unknown_number' as const };
     }
+
+    const [phoneCount, ipCount] = await Promise.all([
+      this.countAttempts(whatsappNumber, 'request', OTP_REQUEST_WINDOW_MS),
+      ip ? this.countAttempts(ip, 'request', OTP_REQUEST_WINDOW_MS) : Promise.resolve(0),
+    ]);
+
+    if (phoneCount >= OTP_REQUEST_MAX_PER_PHONE) {
+      return { ok: false as const, error: 'rate_limited' as const };
+    }
+    if (ipCount >= OTP_REQUEST_MAX_PER_IP) {
+      return { ok: false as const, error: 'rate_limited' as const };
+    }
+
+    await this.recordAttempt(whatsappNumber, 'request', ip);
 
     const code = randomCode();
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
@@ -96,9 +145,14 @@ export class DashboardService {
     return { ok: true as const, expiresIn: OTP_TTL_MS };
   }
 
-  async verifyOtp(phoneInput: string, codeInput: string) {
+  async verifyOtp(phoneInput: string, codeInput: string, ip?: string) {
     const whatsappNumber = normalizePhone(phoneInput);
     const code = codeInput.trim();
+
+    const failCount = await this.countAttempts(whatsappNumber, 'verify_fail', OTP_VERIFY_WINDOW_MS);
+    if (failCount >= OTP_VERIFY_FAIL_MAX) {
+      return { ok: false as const, error: 'rate_limited' as const };
+    }
 
     const record = await this.db
       .select()
@@ -109,17 +163,23 @@ export class DashboardService {
       .get();
 
     if (!record) {
+      await this.recordAttempt(whatsappNumber, 'verify_fail', ip);
       return { ok: false as const, error: 'no_code' as const };
     }
     if (record.isUsed) {
+      await this.recordAttempt(whatsappNumber, 'verify_fail', ip);
       return { ok: false as const, error: 'used' as const };
     }
     if (record.expiresAt.getTime() < Date.now()) {
+      await this.recordAttempt(whatsappNumber, 'verify_fail', ip);
       return { ok: false as const, error: 'expired' as const };
     }
     if (record.code !== code) {
+      await this.recordAttempt(whatsappNumber, 'verify_fail', ip);
       return { ok: false as const, error: 'invalid' as const };
     }
+
+    await this.cleanupAttempts();
 
     await this.db
       .update(otpCodes)

@@ -71,3 +71,11 @@ export const webSessions = sqliteTable('web_sessions', {
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
+
+export const authAttempts = sqliteTable('auth_attempts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  whatsappNumber: text('whatsapp_number').notNull(),
+  ip: text('ip'),
+  action: text('action').notNull(), // 'request' | 'verify_fail'
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});

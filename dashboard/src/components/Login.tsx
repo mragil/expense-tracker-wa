@@ -23,7 +23,9 @@ export default function Login({ onLogin }: LoginProps) {
         body: { phone },
       });
       if (!res.ok) {
-        setError(res.error === 'unknown_number' ? 'This WhatsApp number is not registered with ExpenseBot.' : 'Failed to send code. Try again.');
+        setError(res.error === 'unknown_number' ? 'This WhatsApp number is not registered with ExpenseBot.'
+          : res.error === 'rate_limited' ? 'Too many requests. Please wait a few minutes and try again.'
+          : 'Failed to send code. Try again.');
         return;
       }
       setStep('code');
@@ -49,7 +51,9 @@ export default function Login({ onLogin }: LoginProps) {
           ? 'Invalid or already-used code.'
           : res.error === 'expired'
             ? 'Code expired. Request a new one.'
-            : 'Verification failed.';
+            : res.error === 'rate_limited'
+              ? 'Too many attempts. Request a new code in a few minutes.'
+              : 'Verification failed.';
         setError(msg);
         return;
       }

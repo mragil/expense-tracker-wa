@@ -20,9 +20,10 @@ api.post('/auth/request-otp', async (c) => {
     return c.json({ ok: false, error: 'missing_phone' }, 400);
   }
 
-  const result = await services.dashboard.requestOtp(phone);
+  const ip = c.req.header('CF-Connecting-IP') ?? undefined;
+  const result = await services.dashboard.requestOtp(phone, ip);
   if (!result.ok) {
-    const status = result.error === 'unknown_number' ? 404 : 500;
+    const status = result.error === 'unknown_number' ? 404 : result.error === 'rate_limited' ? 429 : 500;
     return c.json(result, status);
   }
   return c.json(result);
@@ -40,9 +41,10 @@ api.post('/auth/verify', async (c) => {
     return c.json({ ok: false, error: 'missing_fields' }, 400);
   }
 
-  const result = await services.dashboard.verifyOtp(phone, code);
+  const ip = c.req.header('CF-Connecting-IP') ?? undefined;
+  const result = await services.dashboard.verifyOtp(phone, code, ip);
   if (!result.ok) {
-    const status = result.error === 'no_code' ? 404 : 400;
+    const status = result.error === 'no_code' ? 404 : result.error === 'rate_limited' ? 429 : 400;
     return c.json(result, status);
   }
   return c.json(result);
