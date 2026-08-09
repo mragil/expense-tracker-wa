@@ -132,3 +132,10 @@ export function deleteTransaction(id: number): Promise<MutateResponse> {
     method: 'DELETE',
   });
 }
+
+export function updateLanguage(language: 'en' | 'id'): Promise<MeResponse> {
+  return api<MeResponse>('/auth/me', {
+    method: 'PATCH',
+    body: { language },
+  });
+}

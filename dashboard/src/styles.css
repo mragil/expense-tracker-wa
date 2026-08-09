@@ -143,6 +143,29 @@ input, button {
   overflow-y: auto;
 }
 
+.lang-toggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 4px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4f46e5;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lang-toggle:hover {
+  background: #f9fafb;
+}
+
+.nav .lang-toggle {
+  position: static;
+}
+
 .input {
   width: 100%;
   padding: 8px 12px;

@@ -233,6 +233,24 @@ export class DashboardService {
     };
   }
 
+  async updateLanguage(token: string, language: string) {
+    if (language !== 'en' && language !== 'id') {
+      return { ok: false as const, error: 'invalid_language' as const };
+    }
+    const session = await this.getUserForToken(token);
+    if (!session) {
+      return { ok: false as const, error: 'unauthorized' as const };
+    }
+    const user = await this.validUser(session.whatsappNumber);
+    if (user) {
+      await this.db
+        .update(users)
+        .set({ language })
+        .where(eq(users.whatsappNumber, session.whatsappNumber));
+    }
+    return { ok: true as const, language };
+  }
+
   async logout(token: string) {
     if (!token) return;
     await this.db.delete(webSessions).where(eq(webSessions.id, token));

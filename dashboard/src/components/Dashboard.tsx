@@ -3,6 +3,7 @@ import {
   api,
   updateTransaction,
   deleteTransaction,
+  updateLanguage,
   type MeResponse,
   type SummaryResponse,
   type TransactionsResponse,
@@ -11,21 +12,23 @@ import {
   type Transaction,
   type Category,
 } from '../lib/api';
+import { useI18n, type Language } from '../lib/i18n';
 
 interface DashboardProps {
   session: MeResponse;
   onLogout: () => void;
+  onLanguageChange: (lang: Language) => void;
 }
 
 const PERIODS = [
-  { key: 'today', label: 'Today' },
-  { key: 'week', label: 'This Week' },
-  { key: 'month', label: 'This Month' },
-  { key: 'year', label: 'This Year' },
-  { key: 'all', label: 'All' },
-];
+  { key: 'today', tKey: 'today' },
+  { key: 'week', tKey: 'thisWeek' },
+  { key: 'month', tKey: 'thisMonth' },
+  { key: 'year', tKey: 'thisYear' },
+  { key: 'all', tKey: 'all' },
+] as const;
 
-function fmt(n: number, lang: string): string {
+function fmt(n: number, lang: Language): string {
   return n.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US');
 }
 
@@ -37,9 +40,9 @@ function fmtCurrency(n: number): string {
   return String(n);
 }
 
-function fmtDateTime(ts: number | null): string {
+function fmtDateTime(ts: number | null, lang: Language): string {
   if (!ts) return '—';
-  return new Date(ts).toLocaleString(undefined, {
+  return new Date(ts).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', {
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
@@ -47,7 +50,8 @@ function fmtDateTime(ts: number | null): string {
   });
 }
 
-export default function Dashboard({ session, onLogout }: DashboardProps) {
+export default function Dashboard({ session, onLogout, onLanguageChange }: DashboardProps) {
+  const { t, lang, setLang } = useI18n();
   const [period, setPeriod] = useState('month');
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -76,10 +80,10 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
         setBudget(bd.budget);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Failed to load data');
+        setError(err instanceof Error ? err.message : t('errFailedToLoad'));
       })
       .finally(() => setLoading(false));
-  }, [period, tz]);
+  }, [period, tz, t]);
 
   useEffect(() => {
     load();
@@ -99,7 +103,7 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
     setError('');
     const res = await updateTransaction(id, data);
     if (!res.ok) {
-      setError(res.error === 'not_found' ? 'Transaction not found.' : 'Failed to update transaction.');
+      setError(res.error === 'not_found' ? t('errNotFound') : t('errUpdateFailed'));
       return false;
     }
     setEditing(null);
@@ -111,12 +115,24 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
     setError('');
     const res = await deleteTransaction(id);
     if (!res.ok) {
-      setError(res.error === 'not_found' ? 'Transaction not found.' : 'Failed to delete transaction.');
+      setError(res.error === 'not_found' ? t('errNotFound') : t('errDeleteFailed'));
       setConfirming(null);
       return;
     }
     setConfirming(null);
     await load();
+  };
+
+  const handleToggleLanguage = async () => {
+    const next: Language = lang === 'id' ? 'en' : 'id';
+    setError('');
+    try {
+      await updateLanguage(next);
+      setLang(next);
+      onLanguageChange(next);
+    } catch {
+      setError(t('errFailedToSave'));
+    }
   };
 
   return (
@@ -128,15 +144,19 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
             <span>Expense Tracker</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500" style={{ display: 'none' }}>
-              {session.displayName ?? session.whatsappNumber.split('@')[0]}
-            </span>
+            <button
+              onClick={handleToggleLanguage}
+              className="lang-toggle"
+              aria-label={t('languageLabel')}
+            >
+              {lang === 'id' ? 'EN' : 'ID'}
+            </button>
             <button
               onClick={onLogout}
               className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5"
               style={{ cursor: 'pointer', background: 'none' }}
             >
-              Logout
+              {t('logout')}
             </button>
           </div>
         </div>
@@ -144,7 +164,7 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
 
       <main className="mx-auto px-4 py-8 max-w-5xl">
         <div className="flex items-center justify-between gap-4 mb-6" style={{ flexWrap: 'wrap' }}>
-          <h1 className="text-xl font-bold">Overview</h1>
+          <h1 className="text-xl font-bold">{t('overview')}</h1>
           <div className="period-tabs">
             {PERIODS.map((p) => (
               <button
@@ -152,7 +172,7 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
                 onClick={() => setPeriod(p.key)}
                 className={period === p.key ? 'active' : ''}
               >
-                {p.label}
+                {t(p.tKey)}
               </button>
             ))}
           </div>
@@ -165,36 +185,36 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
         )}
 
         {loading && !summary ? (
-          <p className="text-gray-500 text-center" style={{ padding: '48px 0' }}>Loading...</p>
+          <p className="text-gray-500 text-center" style={{ padding: '48px 0' }}>{t('loading')}</p>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <StatCard
-                label="Income"
+                label={t('income')}
                 value={`+${fmtCurrency(summary?.totalIncome ?? 0)}`}
                 color="#16a34a"
-                detail={`${fmt(summary?.totalIncome ?? 0, session.language)} · ${summary?.count ?? 0} txn(s)`}
+                detail={`${fmt(summary?.totalIncome ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
               />
               <StatCard
-                label="Expense"
+                label={t('expense')}
                 value={`−${fmtCurrency(summary?.totalExpense ?? 0)}`}
                 color="#dc2626"
-                detail={`${fmt(summary?.totalExpense ?? 0, session.language)} · ${summary?.count ?? 0} txn(s)`}
+                detail={`${fmt(summary?.totalExpense ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
               />
               <StatCard
-                label="Balance"
+                label={t('balance')}
                 value={fmtCurrency(summary?.balance ?? 0)}
                 color={(summary?.balance ?? 0) >= 0 ? '#111827' : '#dc2626'}
-                detail="income − expense"
+                detail={t('balanceDetail')}
               />
             </div>
 
             {budget && (
               <div className="card mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="font-semibold">Monthly Budget</h2>
+                  <h2 className="font-semibold">{t('monthlyBudget')}</h2>
                   <span className="text-sm text-gray-500">
-                    Spent {fmtCurrency(budget.spent)} of {fmtCurrency(budget.amount)}
+                    {t('spentOf', { spent: fmtCurrency(budget.spent), amount: fmtCurrency(budget.amount) })}
                   </span>
                 </div>
                 <div className="budget-bar">
@@ -210,9 +230,11 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
                   />
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
-                  {budget.percentUsed.toFixed(1)}% used ·{' '}
+                  {t('percentUsed', { pct: budget.percentUsed.toFixed(1) })} ·{' '}
                   <span style={{ fontWeight: 500, color: budget.remaining >= 0 ? '#16a34a' : '#dc2626' }}>
-                    {budget.remaining >= 0 ? `${fmtCurrency(budget.remaining)} remaining` : `${fmtCurrency(-budget.remaining)} over budget`}
+                    {budget.remaining >= 0
+                      ? t('remaining', { amount: fmtCurrency(budget.remaining) })
+                      : t('overBudget', { amount: fmtCurrency(-budget.remaining) })}
                   </span>
                 </p>
               </div>
@@ -220,9 +242,9 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="card">
-                <h2 className="font-semibold mb-4">Spending by Category</h2>
+                <h2 className="font-semibold mb-4">{t('spendingByCategory')}</h2>
                 {expenses.length === 0 ? (
-                  <p className="text-sm text-gray-400">No expenses this period.</p>
+                  <p className="text-sm text-gray-400">{t('noExpenses')}</p>
                 ) : (
                   <div className="space-y-3">
                     {expenses.map(([cat, total]) => {
@@ -247,11 +269,11 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
 
               <div className="card">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold">Recent Transactions</h2>
-                  <span className="text-xs text-gray-400">click ✎ to edit</span>
+                  <h2 className="font-semibold">{t('recentTransactions')}</h2>
+                  <span className="text-xs text-gray-400">{t('clickToEdit')}</span>
                 </div>
                 {transactions.length === 0 ? (
-                  <p className="text-sm text-gray-400">No transactions this period.</p>
+                  <p className="text-sm text-gray-400">{t('noTransactions')}</p>
                 ) : (
                   <div className="max-h-96 overflow-y-auto">
                     {transactions.map((trx) => (
@@ -262,10 +284,10 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
                           </span>
                           <div className="min-w-0" style={{ flex: 1 }}>
                             <p className="text-sm font-medium text-gray-800 truncate">
-                              {trx.category ?? (trx.transactionType === 'income' ? 'Income' : 'Expense')}
+                              {trx.category ?? (trx.transactionType === 'income' ? t('income') : t('expense'))}
                             </p>
                             <p className="text-xs text-gray-400 truncate">
-                              {trx.description || fmtDateTime(trx.createdAt)}
+                              {trx.description || fmtDateTime(trx.createdAt, lang)}
                             </p>
                           </div>
                         </div>
@@ -274,18 +296,18 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
                             className="text-sm font-semibold"
                             style={{ color: trx.transactionType === 'income' ? '#16a34a' : '#dc2626' }}
                           >
-                            {trx.transactionType === 'income' ? '+' : '−'}{fmt(trx.amount, session.language)}
+                            {trx.transactionType === 'income' ? '+' : '−'}{fmt(trx.amount, lang)}
                           </span>
                           <button
                             onClick={() => setEditing(trx)}
-                            title="Edit"
+                            title={t('edit')}
                             className="row-action"
                           >
                             ✎
                           </button>
                           <button
                             onClick={() => setConfirming(trx)}
-                            title="Delete"
+                            title={t('delete')}
                             className="row-action"
                             style={{ color: '#dc2626' }}
                           >
@@ -313,23 +335,25 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
       {confirming && (
         <div className="modal-overlay" onClick={() => setConfirming(null)}>
           <div className="modal card" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold mb-2">Delete transaction?</h3>
+            <h3 className="font-semibold mb-2">{t('deleteTransaction')}</h3>
             <p className="text-sm text-gray-500 mb-4">
-              {confirming.category ?? (confirming.transactionType === 'income' ? 'Income' : 'Expense')} ·{' '}
-              {fmt(confirming.amount, session.language)} — this can't be undone.
+              {t('deleteConfirm', {
+                category: confirming.category ?? (confirming.transactionType === 'income' ? t('income') : t('expense')),
+                amount: fmt(confirming.amount, lang),
+              })}
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirming(null)}
                 className="btn-secondary"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={() => handleDelete(confirming.id)}
                 className="btn-danger"
               >
-                Delete
+                {t('delete')}
               </button>
             </div>
           </div>
@@ -356,6 +380,7 @@ interface EditModalProps {
 }
 
 function EditModal({ transaction, onSave, onClose }: EditModalProps) {
+  const { t } = useI18n();
   const [amount, setAmount] = useState(String(transaction.amount));
   const [type, setType] = useState<'income' | 'expense'>(transaction.transactionType);
   const [category, setCategory] = useState(transaction.category ?? '');
@@ -369,7 +394,7 @@ function EditModal({ transaction, onSave, onClose }: EditModalProps) {
     setError('');
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      setError('Please enter a valid amount.');
+      setError(t('errInvalidAmount'));
       setSaving(false);
       return;
     }
@@ -380,15 +405,15 @@ function EditModal({ transaction, onSave, onClose }: EditModalProps) {
       description,
     });
     setSaving(false);
-    if (!ok) setError('Failed to save changes.');
+    if (!ok) setError(t('errFailedToSave'));
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal card" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-semibold mb-4">Edit Transaction</h3>
+        <h3 className="font-semibold mb-4">{t('editTransaction')}</h3>
         <form onSubmit={handleSubmit}>
-          <label className="label">Amount</label>
+          <label className="label">{t('amount')}</label>
           <input
             type="number"
             inputMode="decimal"
@@ -400,50 +425,50 @@ function EditModal({ transaction, onSave, onClose }: EditModalProps) {
             required
           />
 
-          <label className="label">Type</label>
+          <label className="label">{t('type')}</label>
           <div className="flex gap-2 mb-3">
             <button
               type="button"
               onClick={() => setType('expense')}
               className={type === 'expense' ? 'type-btn active expense' : 'type-btn'}
             >
-              💸 Expense
+              {t('expenseBtn')}
             </button>
             <button
               type="button"
               onClick={() => setType('income')}
               className={type === 'income' ? 'type-btn active income' : 'type-btn'}
             >
-              💰 Income
+              {t('incomeBtn')}
             </button>
           </div>
 
-          <label className="label">Category</label>
+          <label className="label">{t('category')}</label>
           <input
             type="text"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="input mb-3"
-            placeholder="e.g. Food"
+            placeholder={t('categoryPlaceholder')}
           />
 
-          <label className="label">Description</label>
+          <label className="label">{t('description')}</label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="input mb-3"
-            placeholder="Optional note"
+            placeholder={t('optionalNote')}
           />
 
           {error && <p className="error">{error}</p>}
 
           <div className="flex gap-3 justify-end mt-4">
             <button type="button" onClick={onClose} className="btn-secondary">
-              Cancel
+              {t('cancel')}
             </button>
             <button type="submit" disabled={saving} className="btn-primary" style={{ width: 'auto' }}>
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? t('saving') : t('save')}
             </button>
           </div>
         </form>

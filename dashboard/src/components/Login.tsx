@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { api, setToken, type MeResponse, type VerifyResponse, type OtpResponse } from '../lib/api';
+import { useI18n } from '../lib/i18n';
 
 interface LoginProps {
   onLogin: (user: MeResponse) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
+  const { t, lang, setLang } = useI18n();
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [step, setStep] = useState<'phone' | 'code'>('phone');
@@ -23,15 +25,15 @@ export default function Login({ onLogin }: LoginProps) {
         body: { phone },
       });
       if (!res.ok) {
-        setError(res.error === 'unknown_number' ? 'This WhatsApp number is not registered with ExpenseBot.'
-          : res.error === 'rate_limited' ? 'Too many requests. Please wait a few minutes and try again.'
-          : 'Failed to send code. Try again.');
+        setError(res.error === 'unknown_number' ? t('errUnknownNumber')
+          : res.error === 'rate_limited' ? t('errRateLimited')
+          : t('errSendFailed'));
         return;
       }
       setStep('code');
-      setInfo(`Code sent to ${phone}. Check your WhatsApp.`);
+      setInfo(t('codeSent', { phone }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send code');
+      setError(err instanceof Error ? err.message : t('errSendFailed'));
     } finally {
       setLoading(false);
     }
@@ -48,12 +50,12 @@ export default function Login({ onLogin }: LoginProps) {
       });
       if (!res.ok || !res.token) {
         const msg = res.error === 'invalid' || res.error === 'used'
-          ? 'Invalid or already-used code.'
+          ? t('errInvalidCode')
           : res.error === 'expired'
-            ? 'Code expired. Request a new one.'
+            ? t('errCodeExpired')
             : res.error === 'rate_limited'
-              ? 'Too many attempts. Request a new code in a few minutes.'
-              : 'Verification failed.';
+              ? t('errTooManyAttempts')
+              : t('errVerifyFailed');
         setError(msg);
         return;
       }
@@ -61,7 +63,7 @@ export default function Login({ onLogin }: LoginProps) {
       const me = await api<MeResponse>('/auth/me');
       onLogin(me);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verification failed');
+      setError(err instanceof Error ? err.message : t('errVerifyFailed'));
     } finally {
       setLoading(false);
     }
@@ -69,35 +71,43 @@ export default function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ padding: '0 16px' }}>
-      <div className="card w-full max-w-md text-center">
+      <div className="card w-full max-w-md text-center" style={{ position: 'relative' }}>
+        <button
+          type="button"
+          onClick={() => setLang(lang === 'id' ? 'en' : 'id')}
+          className="lang-toggle"
+          aria-label={t('languageLabel')}
+        >
+          {lang === 'id' ? 'EN' : 'ID'}
+        </button>
         <div style={{ fontSize: 40 }} className="mb-4">💰</div>
-        <h1 style={{ fontSize: 24 }} className="font-bold">Expense Tracker</h1>
-        <p className="text-sm text-gray-500 mt-1">Sign in with your WhatsApp number</p>
+        <h1 style={{ fontSize: 24 }} className="font-bold">{t('appTitle')}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t('signInSubtitle')}</p>
 
         {step === 'phone' ? (
           <form onSubmit={handleRequest} style={{ textAlign: 'left', marginTop: 24 }}>
             <label className="text-sm font-medium text-gray-700 mb-2" style={{ display: 'block' }}>
-              WhatsApp Number
+              {t('whatsappNumber')}
             </label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. 081234567890"
+              placeholder={t('phonePlaceholder')}
               className="input"
               required
             />
-            <p className="text-xs text-gray-400 mt-2">We'll send a one-time code to this number via WhatsApp.</p>
+            <p className="text-xs text-gray-400 mt-2">{t('otpHint')}</p>
             {error && <p className="error">{error}</p>}
             {info && <p className="info">{info}</p>}
             <button type="submit" disabled={loading} className="btn-primary mt-4">
-              {loading ? 'Sending...' : 'Send Code'}
+              {loading ? t('sending') : t('sendCode')}
             </button>
           </form>
         ) : (
           <form onSubmit={handleVerify} style={{ textAlign: 'left', marginTop: 24 }}>
             <label className="text-sm font-medium text-gray-700 mb-2" style={{ display: 'block' }}>
-              Enter the 6-digit code
+              {t('enterCode')}
             </label>
             <input
               type="text"
@@ -113,7 +123,7 @@ export default function Login({ onLogin }: LoginProps) {
             {info && <p className="info">{info}</p>}
             {error && <p className="error">{error}</p>}
             <button type="submit" disabled={loading} className="btn-primary mt-4">
-              {loading ? 'Verifying...' : 'Verify & Sign In'}
+              {loading ? t('verifying') : t('verifySignIn')}
             </button>
             <button
               type="button"
@@ -121,7 +131,7 @@ export default function Login({ onLogin }: LoginProps) {
               className="mt-4"
               style={{ width: '100%', fontSize: 14, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              ← Back
+              {t('back')}
             </button>
           </form>
         )}

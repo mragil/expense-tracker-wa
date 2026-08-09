@@ -67,6 +67,22 @@ api.get('/auth/me', async (c) => {
   return c.json(me);
 });
 
+api.patch('/auth/me', async (c) => {
+  const services = c.var.services;
+  const token = (c.req.header('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  const body = await c.req.json<{ language?: string }>().catch(() => ({} as { language?: string }));
+  const result = await services.dashboard.updateLanguage(token, body.language ?? '');
+  if (!result.ok) {
+    const status = result.error === 'unauthorized' ? 401 : 400;
+    return c.json(result, status);
+  }
+  const me = await services.dashboard.getMe(token);
+  if (!me) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
+  return c.json(me);
+});
+
 api.use('/dashboard/*', async (c, next) => {
   const services = c.var.services;
   const token = (c.req.header('Authorization') ?? '').replace(/^Bearer\s+/i, '');
