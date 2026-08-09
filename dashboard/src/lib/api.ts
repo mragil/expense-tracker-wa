@@ -107,3 +107,28 @@ export interface Budget {
 export interface BudgetResponse {
   budget: Budget | null;
 }
+
+export interface MutateResponse {
+  ok: boolean;
+  error?: string;
+}
+
+export type TransactionInput = {
+  amount?: number;
+  transactionType?: 'income' | 'expense';
+  category?: string;
+  description?: string;
+};
+
+export function updateTransaction(id: number, data: TransactionInput): Promise<MutateResponse> {
+  return api<MutateResponse>(`/dashboard/transactions/${id}`, {
+    method: 'PATCH',
+    body: data,
+  });
+}
+
+export function deleteTransaction(id: number): Promise<MutateResponse> {
+  return api<MutateResponse>(`/dashboard/transactions/${id}`, {
+    method: 'DELETE',
+  });
+}

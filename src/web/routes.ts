@@ -114,4 +114,37 @@ api.get('/dashboard/budget', async (c) => {
   return c.json({ budget: data ?? null });
 });
 
+api.patch('/dashboard/transactions/:id', async (c) => {
+  const services = c.var.services;
+  const session = c.get('session')!;
+  const id = Number(c.req.param('id'));
+  if (!Number.isInteger(id)) {
+    return c.json({ ok: false, error: 'invalid_id' }, 400);
+  }
+  const body = await c.req
+    .json<{ amount?: number; transactionType?: string; category?: string; description?: string }>()
+    .catch(() => ({} as { amount?: number; transactionType?: string; category?: string; description?: string }));
+  const result = await services.dashboard.updateTransaction(session.whatsappNumber, id, body);
+  if (!result.ok) {
+    const status = result.error === 'not_found' ? 404 : 400;
+    return c.json(result, status);
+  }
+  return c.json(result);
+});
+
+api.delete('/dashboard/transactions/:id', async (c) => {
+  const services = c.var.services;
+  const session = c.get('session')!;
+  const id = Number(c.req.param('id'));
+  if (!Number.isInteger(id)) {
+    return c.json({ ok: false, error: 'invalid_id' }, 400);
+  }
+  const result = await services.dashboard.deleteTransaction(session.whatsappNumber, id);
+  if (!result.ok) {
+    const status = result.error === 'not_found' ? 404 : 400;
+    return c.json(result, status);
+  }
+  return c.json(result);
+});
+
 export default api;

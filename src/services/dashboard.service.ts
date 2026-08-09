@@ -296,6 +296,58 @@ export class DashboardService {
     }));
   }
 
+  async updateTransaction(
+    whatsappNumber: string,
+    id: number,
+    data: { amount?: number; transactionType?: string; category?: string; description?: string },
+  ) {
+    const existing = await this.db
+      .select()
+      .from(transactions)
+      .where(and(eq(transactions.id, id), eq(transactions.whatsappId, whatsappNumber)))
+      .get();
+
+    if (!existing) {
+      return { ok: false as const, error: 'not_found' as const };
+    }
+
+    const patch: Partial<typeof transactions.$inferInsert> = {};
+    if (data.amount !== undefined) {
+      if (typeof data.amount !== 'number' || !Number.isFinite(data.amount) || data.amount <= 0) {
+        return { ok: false as const, error: 'invalid_amount' as const };
+      }
+      patch['amount'] = data.amount;
+    }
+    if (data.transactionType !== undefined) {
+      if (data.transactionType !== 'income' && data.transactionType !== 'expense') {
+        return { ok: false as const, error: 'invalid_type' as const };
+      }
+      patch['transactionType'] = data.transactionType;
+    }
+    if (data.category !== undefined) patch['category'] = data.category.trim() || null;
+    if (data.description !== undefined) patch['description'] = data.description.trim() || null;
+
+    await this.db.update(transactions).set(patch).where(eq(transactions.id, id));
+
+    return { ok: true as const };
+  }
+
+  async deleteTransaction(whatsappNumber: string, id: number) {
+    const existing = await this.db
+      .select()
+      .from(transactions)
+      .where(and(eq(transactions.id, id), eq(transactions.whatsappId, whatsappNumber)))
+      .get();
+
+    if (!existing) {
+      return { ok: false as const, error: 'not_found' as const };
+    }
+
+    await this.db.delete(transactions).where(eq(transactions.id, id));
+
+    return { ok: true as const };
+  }
+
   async getCategories(whatsappNumber: string, period: string, timezone: string) {
     const { from, to } = parsePeriod(period, timezone);
     const conditions = [eq(transactions.whatsappId, whatsappNumber)];

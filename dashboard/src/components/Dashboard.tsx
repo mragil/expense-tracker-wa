@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   api,
+  updateTransaction,
+  deleteTransaction,
   type MeResponse,
   type SummaryResponse,
   type TransactionsResponse,
@@ -53,36 +55,35 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
   const [budget, setBudget] = useState<BudgetResponse['budget']>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editing, setEditing] = useState<Transaction | null>(null);
+  const [confirming, setConfirming] = useState<Transaction | null>(null);
 
   const tz = session.timezone;
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(() => {
     setLoading(true);
     setError('');
-    Promise.all([
+    return Promise.all([
       api<SummaryResponse>(`/dashboard/summary?period=${period}&timezone=${encodeURIComponent(tz)}`),
       api<TransactionsResponse>(`/dashboard/transactions?period=${period}&limit=100&timezone=${encodeURIComponent(tz)}`),
       api<CategoriesResponse>(`/dashboard/categories?period=${period}&timezone=${encodeURIComponent(tz)}`),
       api<BudgetResponse>(`/dashboard/budget?timezone=${encodeURIComponent(tz)}`),
     ])
       .then(([s, tr, cat, bd]) => {
-        if (cancelled) return;
         setSummary(s);
         setTransactions(tr.transactions);
         setCategories(cat.categories);
         setBudget(bd.budget);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load data');
+        setError(err instanceof Error ? err.message : 'Failed to load data');
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .finally(() => setLoading(false));
   }, [period, tz]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const expenses = useMemo(() => {
     const byCat = new Map<string, number>();
@@ -93,6 +94,30 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
   }, [categories]);
 
   const expenseTotal = expenses.reduce((acc, [, v]) => acc + v, 0);
+
+  const handleSave = async (id: number, data: Parameters<typeof updateTransaction>[1]) => {
+    setError('');
+    const res = await updateTransaction(id, data);
+    if (!res.ok) {
+      setError(res.error === 'not_found' ? 'Transaction not found.' : 'Failed to update transaction.');
+      return false;
+    }
+    setEditing(null);
+    await load();
+    return true;
+  };
+
+  const handleDelete = async (id: number) => {
+    setError('');
+    const res = await deleteTransaction(id);
+    if (!res.ok) {
+      setError(res.error === 'not_found' ? 'Transaction not found.' : 'Failed to delete transaction.');
+      setConfirming(null);
+      return;
+    }
+    setConfirming(null);
+    await load();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -221,7 +246,10 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
               </div>
 
               <div className="card">
-                <h2 className="font-semibold mb-4">Recent Transactions</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold">Recent Transactions</h2>
+                  <span className="text-xs text-gray-400">click ✎ to edit</span>
+                </div>
                 {transactions.length === 0 ? (
                   <p className="text-sm text-gray-400">No transactions this period.</p>
                 ) : (
@@ -232,7 +260,7 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
                           <span className="txn-avatar">
                             {trx.transactionType === 'income' ? '💰' : '💸'}
                           </span>
-                          <div className="min-w-0">
+                          <div className="min-w-0" style={{ flex: 1 }}>
                             <p className="text-sm font-medium text-gray-800 truncate">
                               {trx.category ?? (trx.transactionType === 'income' ? 'Income' : 'Expense')}
                             </p>
@@ -241,12 +269,29 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
                             </p>
                           </div>
                         </div>
-                        <span
-                          className="text-sm font-semibold shrink-0"
-                          style={{ color: trx.transactionType === 'income' ? '#16a34a' : '#dc2626' }}
-                        >
-                          {trx.transactionType === 'income' ? '+' : '−'}{fmt(trx.amount, session.language)}
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className="text-sm font-semibold"
+                            style={{ color: trx.transactionType === 'income' ? '#16a34a' : '#dc2626' }}
+                          >
+                            {trx.transactionType === 'income' ? '+' : '−'}{fmt(trx.amount, session.language)}
+                          </span>
+                          <button
+                            onClick={() => setEditing(trx)}
+                            title="Edit"
+                            className="row-action"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            onClick={() => setConfirming(trx)}
+                            title="Delete"
+                            className="row-action"
+                            style={{ color: '#dc2626' }}
+                          >
+                            🗑
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -256,6 +301,40 @@ export default function Dashboard({ session, onLogout }: DashboardProps) {
           </>
         )}
       </main>
+
+      {editing && (
+        <EditModal
+          transaction={editing}
+          onSave={handleSave}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      {confirming && (
+        <div className="modal-overlay" onClick={() => setConfirming(null)}>
+          <div className="modal card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold mb-2">Delete transaction?</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {confirming.category ?? (confirming.transactionType === 'income' ? 'Income' : 'Expense')} ·{' '}
+              {fmt(confirming.amount, session.language)} — this can't be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirming(null)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(confirming.id)}
+                className="btn-danger"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -266,6 +345,109 @@ function StatCard({ label, value, color, detail }: { label: string; value: strin
       <p className="text-sm text-gray-500">{label}</p>
       <p className="text-2xl font-bold mt-1" style={{ color }}>{value}</p>
       <p className="text-xs text-gray-400 mt-1">{detail}</p>
+    </div>
+  );
+}
+
+interface EditModalProps {
+  transaction: Transaction;
+  onSave: (id: number, data: { amount?: number; transactionType?: 'income' | 'expense'; category?: string; description?: string }) => Promise<boolean>;
+  onClose: () => void;
+}
+
+function EditModal({ transaction, onSave, onClose }: EditModalProps) {
+  const [amount, setAmount] = useState(String(transaction.amount));
+  const [type, setType] = useState<'income' | 'expense'>(transaction.transactionType);
+  const [category, setCategory] = useState(transaction.category ?? '');
+  const [description, setDescription] = useState(transaction.description ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    const parsed = Number(amount);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setError('Please enter a valid amount.');
+      setSaving(false);
+      return;
+    }
+    const ok = await onSave(transaction.id, {
+      amount: parsed,
+      transactionType: type,
+      category,
+      description,
+    });
+    setSaving(false);
+    if (!ok) setError('Failed to save changes.');
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal card" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-semibold mb-4">Edit Transaction</h3>
+        <form onSubmit={handleSubmit}>
+          <label className="label">Amount</label>
+          <input
+            type="number"
+            inputMode="decimal"
+            step="any"
+            min="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="input mb-3"
+            required
+          />
+
+          <label className="label">Type</label>
+          <div className="flex gap-2 mb-3">
+            <button
+              type="button"
+              onClick={() => setType('expense')}
+              className={type === 'expense' ? 'type-btn active expense' : 'type-btn'}
+            >
+              💸 Expense
+            </button>
+            <button
+              type="button"
+              onClick={() => setType('income')}
+              className={type === 'income' ? 'type-btn active income' : 'type-btn'}
+            >
+              💰 Income
+            </button>
+          </div>
+
+          <label className="label">Category</label>
+          <input
+            type="text"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="input mb-3"
+            placeholder="e.g. Food"
+          />
+
+          <label className="label">Description</label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="input mb-3"
+            placeholder="Optional note"
+          />
+
+          {error && <p className="error">{error}</p>}
+
+          <div className="flex gap-3 justify-end mt-4">
+            <button type="button" onClick={onClose} className="btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving} className="btn-primary" style={{ width: 'auto' }}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
