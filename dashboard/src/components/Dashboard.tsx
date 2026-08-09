@@ -13,6 +13,7 @@ import {
   type Category,
 } from '../lib/api';
 import { useI18n, type Language } from '../lib/i18n';
+import Icon, { type IconName } from './Icon';
 
 interface DashboardProps {
   session: MeResponse;
@@ -140,22 +141,18 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
       <nav className="nav">
         <div className="nav-inner">
           <div className="logo">
-            <span className="logo-chip">💰</span>
+            <span className="logo-mark"><Icon name="balance" size={16} /></span>
             <span>Expense Tracker</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="nav-actions">
             <button
               onClick={handleToggleLanguage}
-              className="lang-toggle"
+              className="nav-btn lang-toggle"
               aria-label={t('languageLabel')}
             >
               {lang === 'id' ? 'EN' : 'ID'}
             </button>
-            <button
-              onClick={onLogout}
-              className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5"
-              style={{ cursor: 'pointer', background: 'none' }}
-            >
+            <button onClick={onLogout} className="nav-btn">
               {t('logout')}
             </button>
           </div>
@@ -211,21 +208,21 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                 label={t('income')}
                 value={`+${fmtCurrency(summary?.totalIncome ?? 0)}`}
                 color="#16a34a"
-                icon="💰"
+                icon="income"
                 detail={`${fmt(summary?.totalIncome ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
               />
               <StatCard
                 label={t('expense')}
                 value={`−${fmtCurrency(summary?.totalExpense ?? 0)}`}
                 color="#dc2626"
-                icon="💸"
+                icon="expense"
                 detail={`${fmt(summary?.totalExpense ?? 0, lang)} · ${t('txnCount', { n: summary?.count ?? 0 })}`}
               />
               <StatCard
                 label={t('balance')}
                 value={fmtCurrency(summary?.balance ?? 0)}
-                color={(summary?.balance ?? 0) >= 0 ? '#111827' : '#dc2626'}
-                icon="👛"
+                color={(summary?.balance ?? 0) >= 0 ? '#111110' : '#dc2626'}
+                icon="balance"
                 detail={t('balanceDetail')}
               />
             </div>
@@ -240,14 +237,15 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                 </div>
                 <div className="budget-bar">
                   <div
-                    className={
-                      budget.percentUsed >= 100
-                        ? 'bg-red-500'
-                        : budget.percentUsed >= 80
-                          ? 'bg-yellow-500'
-                          : 'bg-indigo-600'
-                    }
-                    style={{ width: `${Math.min(budget.percentUsed, 100)}%` }}
+                    style={{
+                      width: `${Math.min(budget.percentUsed, 100)}%`,
+                      backgroundColor:
+                        budget.percentUsed >= 100
+                          ? '#dc2626'
+                          : budget.percentUsed >= 80
+                            ? '#b45309'
+                            : '#111110',
+                    }}
                   />
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
@@ -266,7 +264,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                 <h2 className="font-semibold mb-4">{t('spendingByCategory')}</h2>
                 {expenses.length === 0 ? (
                   <div className="empty-state">
-                    <span className="empty-icon">📊</span>
+                    <span className="empty-icon"><Icon name="chart" size={20} /></span>
                     <p className="empty-title">{t('noExpenses')}</p>
                     <p className="empty-hint">{t('noExpensesHint')}</p>
                   </div>
@@ -299,7 +297,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                 </div>
                 {transactions.length === 0 ? (
                   <div className="empty-state">
-                    <span className="empty-icon">📭</span>
+                    <span className="empty-icon"><Icon name="inbox" size={20} /></span>
                     <p className="empty-title">{t('noTransactions')}</p>
                     <p className="empty-hint">{t('noTransactionsHint')}</p>
                   </div>
@@ -309,7 +307,7 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
                       <div key={trx.id} className="txn-row">
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="txn-avatar">
-                            {trx.transactionType === 'income' ? '💰' : '💸'}
+                            <Icon name={trx.transactionType === 'income' ? 'arrowUp' : 'arrowDown'} size={15} />
                           </span>
                           <div className="min-w-0" style={{ flex: 1 }}>
                             <p className="text-sm font-medium text-gray-800 truncate">
@@ -392,15 +390,12 @@ export default function Dashboard({ session, onLogout, onLanguageChange }: Dashb
   );
 }
 
-function StatCard({ label, value, color, detail, icon }: { label: string; value: string; color: string; detail: string; icon: string }) {
+function StatCard({ label, value, color, detail, icon }: { label: string; value: string; color: string; detail: string; icon: IconName }) {
   return (
     <div className="card stat-card">
-      <div>
-        <p className="stat-label">{label}</p>
-        <p className="stat-value text-2xl" style={{ color }}>{value}</p>
-        <p className="stat-detail">{detail}</p>
-      </div>
-      <span className="stat-icon" style={{ background: `${color}1a` }}>{icon}</span>
+      <p className="stat-label"><Icon name={icon} size={15} />{label}</p>
+      <p className="stat-value text-2xl" style={{ color }}>{value}</p>
+      <p className="stat-detail">{detail}</p>
     </div>
   );
 }

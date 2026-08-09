@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api, setToken, type MeResponse, type VerifyResponse, type OtpResponse } from '../lib/api';
 import { useI18n } from '../lib/i18n';
+import Icon from './Icon';
 
 interface LoginProps {
   onLogin: (user: MeResponse) => void;
@@ -80,7 +81,7 @@ export default function Login({ onLogin }: LoginProps) {
         >
           {lang === 'id' ? 'EN' : 'ID'}
         </button>
-        <div className="login-logo">💰</div>
+        <div className="login-logo"><Icon name="balance" size={26} /></div>
         <h1 className="login-title">{t('appTitle')}</h1>
         <p className="login-subtitle">{t('signInSubtitle')}</p>
 
